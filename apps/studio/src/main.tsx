@@ -11,6 +11,7 @@ import {
   facialHairStyleOptions,
   hairColorOptions,
   hairStyleOptions,
+  inferFaceShapeFromFeatures,
   isAvatarConfig,
   normalizeAvatarConfig,
   outfitOptions,
@@ -21,8 +22,14 @@ import {
   type TraitOption
 } from "@avatar-platform/avatar-core";
 import { AvatarRenderer } from "@avatar-platform/avatar-renderer";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import {
+  analyzeSelfieImage,
+  loadImageFromFile,
+  SelfieAnalysisError,
+  type SelfieAnalysisResult
+} from "./faceAnalysis";
 import "./styles.css";
 
 const STORAGE_KEY = "avatar-platform:studio-avatar";
@@ -49,7 +56,19 @@ function StudioApp() {
   const [avatar, setAvatar] = useState<AvatarConfig>(() => loadInitialConfig());
   const [activeSection, setActiveSection] = useState("skin");
   const [status, setStatus] = useState("Ready");
+  const [selfieStatus, setSelfieStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [selfieMessage, setSelfieMessage] = useState("Upload a selfie to generate an editable starting point.");
+  const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+  const [selfieAnalysis, setSelfieAnalysis] = useState<SelfieAnalysisResult | null>(null);
   const exportedJson = useMemo(() => serializeAvatarConfig(avatar), [avatar]);
+
+  useEffect(() => {
+    return () => {
+      if (selfieUrl) {
+        URL.revokeObjectURL(selfieUrl);
+      }
+    };
+  }, [selfieUrl]);
 
   const updateAvatar = <TKey extends keyof AvatarConfig>(key: TKey, value: AvatarConfig[TKey]) => {
     setAvatar((current) => withUpdatedAt({ ...current, [key]: value }));
@@ -60,6 +79,57 @@ function StudioApp() {
     const now = new Date().toISOString();
     setAvatar(normalizeAvatarConfig({ ...config, id: avatar.id, createdAt: avatar.createdAt, updatedAt: now }));
     setStatus("Preset applied");
+  };
+
+  const applySelfieSuggestion = () => {
+    if (!selfieAnalysis) {
+      return;
+    }
+
+    setAvatar(
+      normalizeAvatarConfig({
+        ...selfieAnalysis.suggestion.config,
+        id: avatar.id,
+        createdAt: avatar.createdAt,
+        updatedAt: new Date().toISOString()
+      })
+    );
+    setStatus("Selfie suggestion applied");
+  };
+
+  const handleSelfieFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setSelfieStatus("loading");
+    setSelfieMessage("Loading MediaPipe and analyzing this image locally...");
+    setSelfieAnalysis(null);
+
+    try {
+      const { image, objectUrl } = await loadImageFromFile(file);
+      setSelfieUrl((currentUrl) => {
+        if (currentUrl) {
+          URL.revokeObjectURL(currentUrl);
+        }
+        return objectUrl;
+      });
+
+      const result = await analyzeSelfieImage(image);
+      setSelfieAnalysis(result);
+      setSelfieStatus(result.warnings.length ? "error" : "success");
+      setSelfieMessage(result.warnings[0] ?? "Face detected. Review the suggestion, then apply or keep customizing manually.");
+    } catch (error) {
+      setSelfieStatus("error");
+      setSelfieMessage(
+        error instanceof SelfieAnalysisError
+          ? error.message
+          : "The selfie could not be analyzed. You can still create your avatar manually."
+      );
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const toggleAccessory = (id: string) => {
@@ -136,6 +206,15 @@ function StudioApp() {
             <h1>Avatar Studio</h1>
           </div>
         </div>
+
+        <SelfieStartPanel
+          analysis={selfieAnalysis}
+          message={selfieMessage}
+          onApplySuggestion={applySelfieSuggestion}
+          onFileChange={handleSelfieFile}
+          previewUrl={selfieUrl}
+          status={selfieStatus}
+        />
 
         <div className="section-tabs">
           {avatarTraitCategories.map((category) => (
@@ -289,6 +368,147 @@ function ControlHeader({ title, detail }: { title: string; detail: string }) {
       <p>{detail}</p>
     </header>
   );
+}
+
+function SelfieStartPanel({
+  analysis,
+  message,
+  onApplySuggestion,
+  onFileChange,
+  previewUrl,
+  status
+}: {
+  analysis: SelfieAnalysisResult | null;
+  message: string;
+  onApplySuggestion: () => void;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  previewUrl: string | null;
+  status: "idle" | "loading" | "success" | "error";
+}) {
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const faceShapeGuess = analysis ? inferFaceShapeFromFeatures(analysis.features) : null;
+
+  useEffect(() => {
+    const image = imageRef.current;
+    const canvas = canvasRef.current;
+    if (!image || !canvas || !analysis || !previewUrl) {
+      return;
+    }
+
+    const draw = () => {
+      const rect = image.getBoundingClientRect();
+      const pixelRatio = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(rect.width * pixelRatio));
+      canvas.height = Math.max(1, Math.round(rect.height * pixelRatio));
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+
+      const context = canvas.getContext("2d");
+      if (!context) {
+        return;
+      }
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "rgba(111, 209, 212, 0.85)";
+      context.strokeStyle = "rgba(47, 95, 91, 0.9)";
+      context.lineWidth = 2 * pixelRatio;
+
+      const keyPoints = [10, 33, 61, 93, 127, 133, 152, 168, 234, 263, 280, 291, 323, 356, 362, 397, 454];
+      for (const index of keyPoints) {
+        const point = analysis.landmarks[index];
+        if (!point) {
+          continue;
+        }
+
+        const x = point.x * canvas.width;
+        const y = point.y * canvas.height;
+        context.beginPath();
+        context.arc(x, y, 3.2 * pixelRatio, 0, Math.PI * 2);
+        context.fill();
+      }
+    };
+
+    if (image.complete) {
+      draw();
+    } else {
+      image.addEventListener("load", draw, { once: true });
+    }
+
+    window.addEventListener("resize", draw);
+    return () => {
+      image.removeEventListener("load", draw);
+      window.removeEventListener("resize", draw);
+    };
+  }, [analysis, previewUrl]);
+
+  return (
+    <section className={`selfie-card ${status}`}>
+      <div className="selfie-card-header">
+        <div>
+          <p className="eyebrow">Start from selfie</p>
+          <h2>Photo-assisted suggestion</h2>
+        </div>
+        <span className="local-pill">Browser only</span>
+      </div>
+
+      <p className="privacy-note">Your selfie is processed in the browser for this MVP and is not uploaded.</p>
+
+      <label className="upload-control">
+        <input accept="image/*" onChange={onFileChange} type="file" />
+        <span>{status === "loading" ? "Analyzing..." : "Upload photo"}</span>
+      </label>
+
+      {previewUrl && (
+        <div className="selfie-preview">
+          <img alt="Uploaded selfie preview" ref={imageRef} src={previewUrl} />
+          <canvas aria-hidden="true" ref={canvasRef} />
+        </div>
+      )}
+
+      <p className="analysis-message">{message}</p>
+
+      {analysis && (
+        <>
+          <dl className="feature-summary">
+            <div>
+              <dt>Skin tone</dt>
+              <dd>{bucketLabel(String(analysis.features.estimatedSkinTone))}</dd>
+            </div>
+            <div>
+              <dt>Hair color</dt>
+              <dd>{bucketLabel(String(analysis.features.estimatedHairColor))}</dd>
+            </div>
+            <div>
+              <dt>Face shape</dt>
+              <dd>{faceShapeGuess}</dd>
+            </div>
+            <div>
+              <dt>Confidence</dt>
+              <dd>{Math.round(analysis.suggestion.confidence * 100)}%</dd>
+            </div>
+          </dl>
+
+          <ul className="matched-traits">
+            {analysis.suggestion.matchedTraits.map((trait) => (
+              <li key={trait}>{trait}</li>
+            ))}
+          </ul>
+
+          <button className="apply-suggestion" onClick={onApplySuggestion} type="button">
+            Apply suggested avatar
+          </button>
+        </>
+      )}
+    </section>
+  );
+}
+
+function bucketLabel(value: string): string {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function SegmentedGroup({
