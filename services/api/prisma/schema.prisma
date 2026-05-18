@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id             String       @id @default(cuid())
+  name           String
+  slug           String       @unique
+  apiKeyHash     String       @unique
+  allowedOrigins String[]     @default([])
+  status         String       @default("active")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  avatarUsers    AvatarUser[]
+  avatars        Avatar[]
+  events         AvatarEvent[]
+}
+
+model AvatarUser {
+  id             String   @id @default(cuid())
+  clientId       String
+  externalUserId String
+  displayName    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  avatars        Avatar[]
+
+  @@unique([clientId, externalUserId])
+  @@index([clientId])
+}
+
+model Avatar {
+  id              String        @id @default(cuid())
+  clientId        String
+  avatarUserId    String?
+  externalUserId  String?
+  publicEmbedId   String        @unique
+  configJson      Json
+  previewImageUrl String?
+  status          String        @default("active")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  avatarUser      AvatarUser?   @relation(fields: [avatarUserId], references: [id], onDelete: SetNull)
+  events          AvatarEvent[]
+
+  @@index([clientId])
+  @@index([externalUserId])
+  @@index([publicEmbedId])
+  @@index([status])
+}
+
+model AvatarEvent {
+  id           String   @id @default(cuid())
+  avatarId     String
+  clientId     String
+  eventType    String
+  metadataJson Json?
+  createdAt    DateTime @default(now())
+  avatar       Avatar   @relation(fields: [avatarId], references: [id], onDelete: Cascade)
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([avatarId])
+  @@index([clientId])
+  @@index([eventType])
+}

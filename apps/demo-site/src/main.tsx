@@ -10,6 +10,14 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 const STORAGE_KEY = "avatar-platform:demo-avatar";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+
+interface PublicEmbedResponse {
+  publicEmbedId: string;
+  config: AvatarConfig;
+  previewImageUrl?: string | null;
+  updatedAt: string;
+}
 
 function loadInitialConfig(): AvatarConfig {
   const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -25,6 +33,9 @@ function DemoApp() {
   const [avatar, setAvatar] = useState<AvatarConfig>(() => loadInitialConfig());
   const [jsonInput, setJsonInput] = useState(() => serializeAvatarConfig(loadInitialConfig()));
   const [error, setError] = useState("");
+  const [publicEmbedId, setPublicEmbedId] = useState("");
+  const [embedStatus, setEmbedStatus] = useState("Enter a public embed ID saved from Studio.");
+  const [loadedEmbed, setLoadedEmbed] = useState<PublicEmbedResponse | null>(null);
   const summary = useMemo(() => `${avatar.hairStyle} / ${avatar.outfit} / ${avatar.animation}`, [avatar]);
 
   const importJson = () => {
@@ -45,6 +56,34 @@ function DemoApp() {
     setJsonInput(serializeAvatarConfig(defaultAvatarConfig));
     window.localStorage.removeItem(STORAGE_KEY);
     setError("");
+    setLoadedEmbed(null);
+    setEmbedStatus("Enter a public embed ID saved from Studio.");
+  };
+
+  const loadPublicEmbed = async () => {
+    const id = publicEmbedId.trim();
+    if (!id) {
+      setEmbedStatus("Enter a public embed ID.");
+      return;
+    }
+
+    setEmbedStatus("Loading public avatar...");
+    try {
+      const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/v1/embed/${id}`);
+      const body = await response.json();
+      if (!response.ok) {
+        setEmbedStatus(response.status === 404 ? "Public avatar not found." : body?.message ?? "Public embed load failed.");
+        return;
+      }
+
+      const embed = body as PublicEmbedResponse;
+      setAvatar(embed.config);
+      setJsonInput(serializeAvatarConfig(embed.config));
+      setLoadedEmbed(embed);
+      setEmbedStatus("Loaded public avatar.");
+    } catch {
+      setEmbedStatus("API unavailable. Pasted JSON still works.");
+    }
   };
 
   return (
@@ -69,6 +108,27 @@ function DemoApp() {
         </div>
 
         <aside className="panel">
+          <div>
+            <p className="eyebrow">Public embed</p>
+            <h2>Load by publicEmbedId</h2>
+          </div>
+          <div className="embed-loader">
+            <input
+              onChange={(event) => setPublicEmbedId(event.target.value)}
+              placeholder="emb_..."
+              value={publicEmbedId}
+            />
+            <button className="primary" onClick={loadPublicEmbed} type="button">Load Embed</button>
+          </div>
+          <p className="embed-status">{embedStatus}</p>
+          {loadedEmbed && (
+            <div className="embed-preview">
+              <span>Public data</span>
+              <code>{loadedEmbed.publicEmbedId}</code>
+              <small>Updated {new Date(loadedEmbed.updatedAt).toLocaleString()}</small>
+            </div>
+          )}
+
           <div>
             <p className="eyebrow">Import JSON</p>
             <h2>Render exported config</h2>

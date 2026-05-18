@@ -1,4 +1,7 @@
+import { z } from "zod";
+
 export const AVATAR_CONFIG_VERSION = 1;
+export const MAX_AVATAR_CONFIG_JSON_BYTES = 32_000;
 
 export type SkinTone = "porcelain" | "sand" | "amber" | "copper" | "mahogany";
 export type FaceShape = "round" | "oval" | "square" | "heart" | "long";
@@ -117,6 +120,41 @@ export interface ValidationResult {
   errors: string[];
   config?: AvatarConfig;
 }
+
+const colorSchema = z
+  .string()
+  .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "must be a hex color");
+
+export const avatarConfigSchema = z
+  .object({
+    id: z.string().min(1),
+    version: z.number().int().positive(),
+    skinTone: z.enum(["porcelain", "sand", "amber", "copper", "mahogany"]),
+    faceShape: z.enum(["round", "oval", "square", "heart", "long"]),
+    eyeShape: z.enum(["almond", "round", "soft", "bright"]),
+    eyeColor: colorSchema,
+    eyebrowStyle: z.enum(["soft-arch", "straight", "bold", "lifted"]),
+    hairStyle: z.enum(["short-textured", "bob", "curly", "high-puff", "side-sweep", "buzz"]),
+    hairColor: colorSchema,
+    facialHairStyle: z.enum(["none", "stubble", "goatee", "full-beard"]),
+    outfit: z.enum(["studio-hoodie", "tailored-jacket", "tech-tee", "soft-knit", "space-suit"]),
+    accessoryIds: z.array(z.enum(["round-glasses", "visor", "earrings", "headphones"])),
+    animation: z.enum(["idle", "wave", "celebrate"]),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime()
+  })
+  .strict()
+  .superRefine((config, context) => {
+    const size = new TextEncoder().encode(JSON.stringify(config)).byteLength;
+    if (size > MAX_AVATAR_CONFIG_JSON_BYTES) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `avatar config must be ${MAX_AVATAR_CONFIG_JSON_BYTES} bytes or smaller`
+      });
+    }
+  });
+
+export type AvatarConfigInput = z.input<typeof avatarConfigSchema>;
 
 const timestamp = "2026-05-18T00:00:00.000Z";
 
@@ -283,22 +321,6 @@ export const avatarPresets: AvatarPreset[] = [
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const requiredStringFields: Array<keyof AvatarConfig> = [
-  "id",
-  "skinTone",
-  "faceShape",
-  "eyeShape",
-  "eyeColor",
-  "eyebrowStyle",
-  "hairStyle",
-  "hairColor",
-  "facialHairStyle",
-  "outfit",
-  "animation",
-  "createdAt",
-  "updatedAt"
-];
-
 export function normalizeAvatarConfig(value: unknown): AvatarConfig {
   if (!isObject(value)) {
     return { ...defaultAvatarConfig, updatedAt: new Date().toISOString() };
@@ -321,31 +343,14 @@ export function normalizeAvatarConfig(value: unknown): AvatarConfig {
 }
 
 export function validateAvatarConfig(value: unknown): ValidationResult {
-  if (!isObject(value)) {
-    return { valid: false, errors: ["Avatar config must be an object."] };
-  }
-
-  const normalized = normalizeAvatarConfig(value);
-  const errors: string[] = [];
-
-  if (typeof normalized.version !== "number") {
-    errors.push("version must be a number.");
-  }
-
-  for (const field of requiredStringFields) {
-    if (typeof normalized[field] !== "string" || String(normalized[field]).trim() === "") {
-      errors.push(`${field} must be a non-empty string.`);
-    }
-  }
-
-  if (!Array.isArray(normalized.accessoryIds)) {
-    errors.push("accessoryIds must be an array.");
-  }
+  const parsed = avatarConfigSchema.safeParse(value);
 
   return {
-    valid: errors.length === 0,
-    errors,
-    config: errors.length === 0 ? normalized : undefined
+    valid: parsed.success,
+    errors: parsed.success
+      ? []
+      : parsed.error.issues.map((issue) => `${issue.path.join(".") || "config"} ${issue.message}`),
+    config: parsed.success ? parsed.data : undefined
   };
 }
 

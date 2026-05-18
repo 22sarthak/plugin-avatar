@@ -7,6 +7,10 @@
     "dev:studio": "pnpm --filter @avatar-platform/studio dev",
     "dev:demo": "pnpm --filter @avatar-platform/demo-site dev",
     "dev:api": "pnpm --filter @avatar-platform/api dev",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @avatar-platform/api prisma:migrate",
+    "db:seed": "pnpm --filter @avatar-platform/api prisma:seed",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint"

@@ -421,6 +421,76 @@ h2 {
   background: #f5ddd7;
 }
 
+.api-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #f6f1e8;
+}
+
+.api-card button {
+  min-height: 40px;
+  border: 1px solid rgba(89, 76, 62, 0.16);
+  border-radius: 12px;
+  color: #312a24;
+  background: #fffdfa;
+}
+
+.api-card button.primary {
+  color: #fffdfa;
+  background: #2f5f5b;
+}
+
+.api-field {
+  display: grid;
+  gap: 6px;
+  color: #655d55;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.api-field input {
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid rgba(89, 76, 62, 0.16);
+  border-radius: 10px;
+  padding: 0 10px;
+  color: #26221e;
+  background: #fffdfa;
+  font: inherit;
+}
+
+.api-status {
+  color: #2f5f5b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.api-meta {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.api-meta div {
+  display: grid;
+  gap: 4px;
+}
+
+.api-meta dt {
+  color: #655d55;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.api-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
 .json-output {
   width: 100%;
   min-height: 220px;

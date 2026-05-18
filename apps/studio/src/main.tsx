@@ -33,6 +33,18 @@ import {
 import "./styles.css";
 
 const STORAGE_KEY = "avatar-platform:studio-avatar";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+const DEV_API_KEY = import.meta.env.VITE_DEV_AVATAR_API_KEY ?? "dev_avatar_platform_key";
+
+interface ApiAvatarResponse {
+  avatarId: string;
+  publicEmbedId: string;
+  externalUserId?: string | null;
+  config: AvatarConfig;
+  previewImageUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 function loadInitialConfig(): AvatarConfig {
   const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -60,7 +72,12 @@ function StudioApp() {
   const [selfieMessage, setSelfieMessage] = useState("Upload a selfie to generate an editable starting point.");
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [selfieAnalysis, setSelfieAnalysis] = useState<SelfieAnalysisResult | null>(null);
+  const [apiStatus, setApiStatus] = useState("API not used yet");
+  const [savedAvatarId, setSavedAvatarId] = useState("");
+  const [publicEmbedId, setPublicEmbedId] = useState("");
+  const [loadAvatarId, setLoadAvatarId] = useState("");
   const exportedJson = useMemo(() => serializeAvatarConfig(avatar), [avatar]);
+  const publicEmbedUrl = publicEmbedId ? `${API_BASE_URL.replace(/\/$/, "")}/v1/embed/${publicEmbedId}` : "";
 
   useEffect(() => {
     return () => {
@@ -146,6 +163,73 @@ function StudioApp() {
   const saveAvatar = () => {
     window.localStorage.setItem(STORAGE_KEY, serializeAvatarConfig(avatar));
     setStatus("Saved locally");
+  };
+
+  const saveAvatarToApi = async () => {
+    setApiStatus("Saving to API...");
+
+    try {
+      const url = savedAvatarId
+        ? `${API_BASE_URL.replace(/\/$/, "")}/v1/avatars/${savedAvatarId}`
+        : `${API_BASE_URL.replace(/\/$/, "")}/v1/avatars`;
+      const response = await fetch(url, {
+        method: savedAvatarId ? "PUT" : "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-avatar-api-key": DEV_API_KEY
+        },
+        body: JSON.stringify({ config: avatar })
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        const message = body?.message ?? "API save failed.";
+        setApiStatus(response.status === 401 ? "Unauthorized API key" : message);
+        return;
+      }
+
+      const saved = body as ApiAvatarResponse;
+      setSavedAvatarId(saved.avatarId);
+      setPublicEmbedId(saved.publicEmbedId);
+      setAvatar(normalizeAvatarConfig(saved.config));
+      window.localStorage.setItem(STORAGE_KEY, serializeAvatarConfig(saved.config));
+      setApiStatus(savedAvatarId ? "Updated API avatar" : "Saved API avatar");
+    } catch {
+      setApiStatus("API unavailable. Local save still works.");
+    }
+  };
+
+  const loadAvatarFromApi = async () => {
+    const id = loadAvatarId.trim();
+    if (!id) {
+      setApiStatus("Enter an avatar ID to load.");
+      return;
+    }
+
+    setApiStatus("Loading from API...");
+
+    try {
+      const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/v1/avatars/${id}`, {
+        headers: {
+          "x-avatar-api-key": DEV_API_KEY
+        }
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        setApiStatus(response.status === 401 ? "Unauthorized API key" : response.status === 404 ? "Avatar not found" : body?.message ?? "API load failed.");
+        return;
+      }
+
+      const loaded = body as ApiAvatarResponse;
+      setAvatar(normalizeAvatarConfig(loaded.config));
+      setSavedAvatarId(loaded.avatarId);
+      setPublicEmbedId(loaded.publicEmbedId);
+      window.localStorage.setItem(STORAGE_KEY, serializeAvatarConfig(loaded.config));
+      setApiStatus("Loaded API avatar");
+    } catch {
+      setApiStatus("API unavailable. Local load still works.");
+    }
   };
 
   const loadAvatar = () => {
@@ -350,6 +434,37 @@ function StudioApp() {
           <button onClick={exportJson} type="button">Export JSON</button>
           <button onClick={importFromClipboard} type="button">Import Clipboard</button>
           <button className="danger" onClick={resetAvatar} type="button">Reset</button>
+        </section>
+
+        <section>
+          <p className="eyebrow">API Save / Load</p>
+          <div className="api-card">
+            <button className="primary" onClick={saveAvatarToApi} type="button">
+              {savedAvatarId ? "Update API Avatar" : "Save Avatar to API"}
+            </button>
+            <label className="api-field">
+              <span>Load by avatar ID</span>
+              <input onChange={(event) => setLoadAvatarId(event.target.value)} placeholder="avatar id" value={loadAvatarId} />
+            </label>
+            <button onClick={loadAvatarFromApi} type="button">Load API Avatar</button>
+            <p className="api-status">{apiStatus}</p>
+            {savedAvatarId && (
+              <dl className="api-meta">
+                <div>
+                  <dt>Avatar ID</dt>
+                  <dd>{savedAvatarId}</dd>
+                </div>
+                <div>
+                  <dt>Public embed ID</dt>
+                  <dd>{publicEmbedId}</dd>
+                </div>
+                <div>
+                  <dt>Embed URL</dt>
+                  <dd>{publicEmbedUrl}</dd>
+                </div>
+              </dl>
+            )}
+          </div>
         </section>
 
         <section>

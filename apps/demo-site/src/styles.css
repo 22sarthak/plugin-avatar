@@ -133,6 +133,23 @@ h2 {
   gap: 10px;
 }
 
+.embed-loader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.embed-loader input {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid rgba(89, 76, 62, 0.16);
+  border-radius: 14px;
+  padding: 0 12px;
+  color: #26221e;
+  background: #fffdfa;
+  font: inherit;
+}
+
 .button-row button {
   min-height: 44px;
   border: 1px solid rgba(89, 76, 62, 0.16);
@@ -141,10 +158,50 @@ h2 {
   background: #f6f1e8;
 }
 
+.embed-loader button {
+  min-height: 44px;
+  border: 1px solid rgba(89, 76, 62, 0.16);
+  border-radius: 14px;
+  padding: 0 14px;
+  color: #312a24;
+  background: #f6f1e8;
+}
+
 .button-row .primary {
   color: #fffdfa;
   border-color: #2f5f5b;
   background: #2f5f5b;
+}
+
+.embed-loader .primary {
+  color: #fffdfa;
+  border-color: #2f5f5b;
+  background: #2f5f5b;
+}
+
+.embed-status {
+  color: #2f5f5b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.embed-preview {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #f6f1e8;
+}
+
+.embed-preview span,
+.embed-preview small {
+  color: #6a625a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.embed-preview code {
+  overflow-wrap: anywhere;
 }
 
 .error-text {
