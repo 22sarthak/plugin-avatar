@@ -20,6 +20,9 @@ importers:
       '@avatar-platform/avatar-core':
         specifier: workspace:*
         version: link:../../packages/avatar-core
+      '@avatar-platform/avatar-renderer':
+        specifier: workspace:*
+        version: link:../../packages/avatar-renderer
       '@avatar-platform/avatar-sdk':
         specifier: workspace:*
         version: link:../../packages/avatar-sdk

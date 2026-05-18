@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@avatar-platform/avatar-core": "workspace:*",
+    "@avatar-platform/avatar-renderer": "workspace:*",
     "@avatar-platform/avatar-sdk": "workspace:*",
     "@avatar-platform/ui": "workspace:*",
     "@vitejs/plugin-react": "^4.2.1",

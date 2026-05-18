@@ -1,38 +1,91 @@
-import { createSampleAvatarConfig } from "@avatar-platform/avatar-core";
-import type { AvatarIframeOptions } from "@avatar-platform/avatar-sdk";
-import { Surface } from "@avatar-platform/ui";
-import React from "react";
+import {
+  defaultAvatarConfig,
+  parseAvatarConfigJson,
+  serializeAvatarConfig,
+  type AvatarConfig
+} from "@avatar-platform/avatar-core";
+import { AvatarRenderer } from "@avatar-platform/avatar-renderer";
+import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
-const sampleAvatar = createSampleAvatarConfig();
+const STORAGE_KEY = "avatar-platform:demo-avatar";
 
-const iframeOptions: Pick<AvatarIframeOptions, "src" | "title"> = {
-  src: "http://localhost:5173",
-  title: "Avatar Studio"
-};
+function loadInitialConfig(): AvatarConfig {
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (!stored) {
+    return defaultAvatarConfig;
+  }
+
+  const result = parseAvatarConfigJson(stored);
+  return result.config ?? defaultAvatarConfig;
+}
 
 function DemoApp() {
+  const [avatar, setAvatar] = useState<AvatarConfig>(() => loadInitialConfig());
+  const [jsonInput, setJsonInput] = useState(() => serializeAvatarConfig(loadInitialConfig()));
+  const [error, setError] = useState("");
+  const summary = useMemo(() => `${avatar.hairStyle} / ${avatar.outfit} / ${avatar.animation}`, [avatar]);
+
+  const importJson = () => {
+    const result = parseAvatarConfigJson(jsonInput);
+    if (result.config) {
+      setAvatar(result.config);
+      window.localStorage.setItem(STORAGE_KEY, serializeAvatarConfig(result.config));
+      setJsonInput(serializeAvatarConfig(result.config));
+      setError("");
+      return;
+    }
+
+    setError(result.errors.join(" "));
+  };
+
+  const resetDemo = () => {
+    setAvatar(defaultAvatarConfig);
+    setJsonInput(serializeAvatarConfig(defaultAvatarConfig));
+    window.localStorage.removeItem(STORAGE_KEY);
+    setError("");
+  };
+
   return (
     <main className="demo-shell">
-      <section className="demo-layout">
+      <section className="hero-row">
         <div>
-          <p className="eyebrow">Embed host scaffold</p>
-          <h1>Demo Site</h1>
+          <p className="eyebrow">Renderer integration demo</p>
+          <h1>Avatar Embed Preview</h1>
           <p>
-            This app will host the iframe and JS SDK examples. For now it documents the planned
-            iframe source and imports the SDK contracts without implementing the full protocol.
+            Paste an exported Studio config to render the same reusable AvatarRenderer in a host app.
           </p>
         </div>
-        <Surface title="Future iframe target">
-          <div className="embed-box">
-            <span>{iframeOptions.title}</span>
-            <code>{iframeOptions.src}</code>
+        <div className="status-card">
+          <span>Current config</span>
+          <strong>{summary}</strong>
+        </div>
+      </section>
+
+      <section className="demo-grid">
+        <div className="viewer-card">
+          <AvatarRenderer config={avatar} />
+        </div>
+
+        <aside className="panel">
+          <div>
+            <p className="eyebrow">Import JSON</p>
+            <h2>Render exported config</h2>
           </div>
-        </Surface>
-        <Surface title="Sample event payload shape">
-          <pre>{JSON.stringify({ type: "avatar:created", payload: { avatar: sampleAvatar } }, null, 2)}</pre>
-        </Surface>
+          <textarea
+            aria-label="Avatar config JSON"
+            className="json-input"
+            onChange={(event) => setJsonInput(event.target.value)}
+            spellCheck={false}
+            value={jsonInput}
+          />
+          {error && <p className="error-text">{error}</p>}
+          <div className="button-row">
+            <button className="primary" onClick={importJson} type="button">Render Config</button>
+            <button onClick={resetDemo} type="button">Reset Demo</button>
+          </div>
+        </aside>
       </section>
     </main>
   );
