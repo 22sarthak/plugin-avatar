@@ -1,0 +1,19 @@
+{
+  "name": "avatar-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:studio": "pnpm --filter @avatar-platform/studio dev",
+    "dev:demo": "pnpm --filter @avatar-platform/demo-site dev",
+    "dev:api": "pnpm --filter @avatar-platform/api dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript": "^5.4.5"
+  },
+  "packageManager": "pnpm@10.8.1"
+}

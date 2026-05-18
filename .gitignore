@@ -1,2 +1,11 @@
-
-external/
+node_modules/
+dist/
+.turbo/
+.vite/
+coverage/
+*.log
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+services/api/data/
