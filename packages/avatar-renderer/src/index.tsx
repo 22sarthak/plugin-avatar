@@ -8,6 +8,9 @@ import type { Group } from "three";
 export interface AvatarRendererProps {
   config: AvatarConfig;
   className?: string;
+  controls?: boolean;
+  transparent?: boolean;
+  animationOverride?: "idle" | "wave" | "celebrate" | "bounce";
   style?: CSSProperties;
 }
 
@@ -514,7 +517,13 @@ function Accessories({
   );
 }
 
-function AnimatedAvatar({ config }: { config: AvatarConfig }) {
+function AnimatedAvatar({
+  animationOverride,
+  config
+}: {
+  animationOverride?: AvatarRendererProps["animationOverride"];
+  config: AvatarConfig;
+}) {
   const group = useRef<Group>(null);
   const rightArm = useRef<Group>(null);
   const leftArm = useRef<Group>(null);
@@ -548,9 +557,11 @@ function AnimatedAvatar({ config }: { config: AvatarConfig }) {
     const breathing = Math.sin(time * 1.55) * 0.014;
     const bounce = Math.abs(Math.sin(time * 2.05)) * 0.032;
 
+    const animation = animationOverride ?? config.animation;
+
     if (group.current) {
-      group.current.position.y = breathing + (config.animation === "celebrate" ? bounce : 0);
-      group.current.rotation.y = config.animation === "celebrate" ? Math.sin(time * 2) * 0.1 : Math.sin(time * 0.42) * 0.028;
+      group.current.position.y = breathing + (animation === "celebrate" || animation === "bounce" ? bounce : 0);
+      group.current.rotation.y = animation === "celebrate" ? Math.sin(time * 2) * 0.1 : Math.sin(time * 0.42) * 0.028;
     }
 
     if (head.current) {
@@ -560,12 +571,12 @@ function AnimatedAvatar({ config }: { config: AvatarConfig }) {
 
     if (rightArm.current) {
       rightArm.current.rotation.z =
-        config.animation === "wave" ? -1.0 + Math.sin(time * 6) * 0.28 : config.animation === "celebrate" ? -1.25 : -0.22;
-      rightArm.current.rotation.x = config.animation === "wave" ? -0.12 : 0;
+        animation === "wave" ? -1.0 + Math.sin(time * 6) * 0.28 : animation === "celebrate" ? -1.25 : -0.22;
+      rightArm.current.rotation.x = animation === "wave" ? -0.12 : 0;
     }
 
     if (leftArm.current) {
-      leftArm.current.rotation.z = config.animation === "celebrate" ? 1.25 : 0.22;
+      leftArm.current.rotation.z = animation === "celebrate" ? 1.25 : 0.22;
     }
   });
 
@@ -604,23 +615,32 @@ function AnimatedAvatar({ config }: { config: AvatarConfig }) {
   );
 }
 
-export function AvatarRenderer({ config, className, style }: AvatarRendererProps) {
+export function AvatarRenderer({
+  animationOverride,
+  config,
+  className,
+  controls = true,
+  transparent = false,
+  style
+}: AvatarRendererProps) {
   return (
     <div className={className} style={{ width: "100%", height: "100%", minHeight: 360, ...style }}>
-      <Canvas shadows camera={{ position: [0, 1.48, 3.25], fov: 34 }}>
-        <color attach="background" args={["#f8f5ef"]} />
+      <Canvas shadows camera={{ position: [0, 1.48, 3.25], fov: 34 }} gl={{ alpha: transparent }}>
+        {!transparent && <color attach="background" args={["#f8f5ef"]} />}
         <ambientLight intensity={0.88} />
         <directionalLight castShadow position={[2.8, 4.3, 3.2]} intensity={1.25} shadow-mapSize={[1536, 1536]} />
         <directionalLight position={[-2.6, 2.2, 2]} intensity={0.42} color="#f4dfcd" />
         <directionalLight position={[0, 2.4, -3]} intensity={0.58} color="#dcecff" />
         <Environment preset="studio" environmentIntensity={0.24} />
-        <AnimatedAvatar config={config} />
-        <mesh receiveShadow rotation-x={-Math.PI / 2} position={[0, 0.1, 0]}>
-          <circleGeometry args={[1.38, 64]} />
-          <SoftMaterial color="#e8e1d6" roughness={0.92} />
-        </mesh>
-        <ContactShadows position={[0, 0.105, 0]} opacity={0.24} scale={3.5} blur={2.8} far={2.2} />
-        <OrbitControls enablePan={false} minDistance={2.25} maxDistance={4.6} target={[0, 1.2, 0]} />
+        <AnimatedAvatar animationOverride={animationOverride} config={config} />
+        {!transparent && (
+          <mesh receiveShadow rotation-x={-Math.PI / 2} position={[0, 0.1, 0]}>
+            <circleGeometry args={[1.38, 64]} />
+            <SoftMaterial color="#e8e1d6" roughness={0.92} />
+          </mesh>
+        )}
+        <ContactShadows position={[0, 0.105, 0]} opacity={transparent ? 0.16 : 0.24} scale={3.5} blur={2.8} far={2.2} />
+        {controls && <OrbitControls enablePan={false} minDistance={2.25} maxDistance={4.6} target={[0, 1.2, 0]} />}
       </Canvas>
     </div>
   );

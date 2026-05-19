@@ -5,12 +5,20 @@ import {
   type AvatarConfig
 } from "@avatar-platform/avatar-core";
 import { AvatarRenderer } from "@avatar-platform/avatar-renderer";
-import React, { useMemo, useState } from "react";
+import {
+  createAvatarCreatorUrl,
+  createAvatarViewerUrl,
+  isAvatarCreatedMessage,
+  type AvatarCreatedMessage
+} from "@avatar-platform/avatar-sdk";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 const STORAGE_KEY = "avatar-platform:demo-avatar";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+const STUDIO_BASE_URL = import.meta.env.VITE_STUDIO_BASE_URL ?? "http://localhost:5173";
+const DEMO_BASE_URL = import.meta.env.VITE_DEMO_BASE_URL ?? "http://localhost:5174";
 
 interface PublicEmbedResponse {
   publicEmbedId: string;
@@ -29,6 +37,96 @@ function loadInitialConfig(): AvatarConfig {
   return result.config ?? defaultAvatarConfig;
 }
 
+function isAllowedDevOrigin(origin: string): boolean {
+  if (origin === window.location.origin) {
+    return true;
+  }
+
+  try {
+    const url = new URL(origin);
+    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
+function parseBooleanParam(value: string | null, fallback: boolean): boolean {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
+function parseViewerAnimation(value: string | null): "idle" | "bounce" | "wave" | undefined {
+  if (value === "idle" || value === "bounce" || value === "wave") {
+    return value;
+  }
+
+  return undefined;
+}
+
+function getViewerRoute(): string | null {
+  const match = window.location.pathname.match(/^\/embed\/avatar\/([^/]+)$/);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function PublicAvatarViewer({ publicEmbedId }: { publicEmbedId: string }) {
+  const params = new URLSearchParams(window.location.search);
+  const animation = parseViewerAnimation(params.get("animation"));
+  const controls = parseBooleanParam(params.get("controls"), true);
+  const transparent = parseBooleanParam(params.get("transparent"), false);
+  const [avatar, setAvatar] = useState<AvatarConfig | null>(null);
+  const [status, setStatus] = useState("Loading public avatar...");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAvatar() {
+      try {
+        const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/v1/embed/${publicEmbedId}`);
+        const body = await response.json();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok) {
+          setStatus(response.status === 404 ? "Public avatar not found." : body?.message ?? "Public avatar could not be loaded.");
+          return;
+        }
+
+        setAvatar((body as PublicEmbedResponse).config);
+        setStatus("");
+      } catch {
+        if (!cancelled) {
+          setStatus("API unavailable. Public avatar could not be loaded.");
+        }
+      }
+    }
+
+    loadAvatar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [publicEmbedId]);
+
+  return (
+    <main className={transparent ? "embed-viewer transparent" : "embed-viewer"}>
+      {avatar ? (
+        <AvatarRenderer
+          animationOverride={animation}
+          config={avatar}
+          controls={controls}
+          style={{ minHeight: "100vh" }}
+          transparent={transparent}
+        />
+      ) : (
+        <p className="embed-viewer-status">{status}</p>
+      )}
+    </main>
+  );
+}
+
 function DemoApp() {
   const [avatar, setAvatar] = useState<AvatarConfig>(() => loadInitialConfig());
   const [jsonInput, setJsonInput] = useState(() => serializeAvatarConfig(loadInitialConfig()));
@@ -36,7 +134,44 @@ function DemoApp() {
   const [publicEmbedId, setPublicEmbedId] = useState("");
   const [embedStatus, setEmbedStatus] = useState("Enter a public embed ID saved from Studio.");
   const [loadedEmbed, setLoadedEmbed] = useState<PublicEmbedResponse | null>(null);
+  const [receivedAvatar, setReceivedAvatar] = useState<AvatarCreatedMessage["payload"] | null>(null);
   const summary = useMemo(() => `${avatar.hairStyle} / ${avatar.outfit} / ${avatar.animation}`, [avatar]);
+  const creatorUrl = createAvatarCreatorUrl({
+    baseUrl: STUDIO_BASE_URL,
+    clientId: "demo",
+    externalUserId: "user_123",
+    theme: "light"
+  });
+  const viewerUrl = receivedAvatar
+    ? createAvatarViewerUrl({
+        baseUrl: DEMO_BASE_URL,
+        publicEmbedId: receivedAvatar.publicEmbedId,
+        animation: "idle",
+        controls: true
+      })
+    : "";
+  const creatorSnippet = `<iframe src="${creatorUrl}" title="Create your avatar" style="width:100%;height:720px;border:0;border-radius:16px;"></iframe>`;
+  const viewerSnippet = viewerUrl
+    ? `<iframe src="${viewerUrl}" title="Avatar viewer" style="width:100%;height:520px;border:0;border-radius:16px;"></iframe>`
+    : "Create and save an avatar to generate a viewer iframe snippet.";
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      // TODO: Enforce per-client allowedOrigins from the API Client record before production.
+      if (!isAllowedDevOrigin(event.origin) || !isAvatarCreatedMessage(event.data)) {
+        return;
+      }
+
+      setReceivedAvatar(event.data.payload);
+      setAvatar(event.data.payload.config);
+      setJsonInput(serializeAvatarConfig(event.data.payload.config));
+      window.localStorage.setItem(STORAGE_KEY, serializeAvatarConfig(event.data.payload.config));
+      setEmbedStatus("Received AVATAR_CREATED from creator iframe.");
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   const importJson = () => {
     const result = parseAvatarConfigJson(jsonInput);
@@ -57,6 +192,7 @@ function DemoApp() {
     window.localStorage.removeItem(STORAGE_KEY);
     setError("");
     setLoadedEmbed(null);
+    setReceivedAvatar(null);
     setEmbedStatus("Enter a public embed ID saved from Studio.");
   };
 
@@ -90,16 +226,65 @@ function DemoApp() {
     <main className="demo-shell">
       <section className="hero-row">
         <div>
-          <p className="eyebrow">Renderer integration demo</p>
-          <h1>Avatar Embed Preview</h1>
+          <p className="eyebrow">Plug-and-play iframe demo</p>
+          <h1>Avatar Embed Flow</h1>
           <p>
-            Paste an exported Studio config to render the same reusable AvatarRenderer in a host app.
+            This page embeds the creator iframe, listens for a validated AVATAR_CREATED event, and renders the saved avatar with the reusable renderer.
           </p>
         </div>
         <div className="status-card">
           <span>Current config</span>
           <strong>{summary}</strong>
         </div>
+      </section>
+
+      <section className="embed-showcase">
+        <div className="iframe-card">
+          <div className="card-heading">
+            <p className="eyebrow">Creator iframe</p>
+            <h2>Create and save</h2>
+          </div>
+          <iframe src={creatorUrl} title="Avatar creator iframe" />
+        </div>
+
+        <aside className="panel event-panel">
+          <div>
+            <p className="eyebrow">PostMessage receiver</p>
+            <h2>Received payload</h2>
+          </div>
+          {receivedAvatar ? (
+            <dl className="payload-list">
+              <div>
+                <dt>Avatar ID</dt>
+                <dd>{receivedAvatar.avatarId}</dd>
+              </div>
+              <div>
+                <dt>Public embed ID</dt>
+                <dd>{receivedAvatar.publicEmbedId}</dd>
+              </div>
+              <div>
+                <dt>Preview URL</dt>
+                <dd>{receivedAvatar.previewUrl ?? "null"}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="embed-status">Save from the creator iframe to receive AVATAR_CREATED.</p>
+          )}
+
+          <div className="mini-viewer">
+            <AvatarRenderer animationOverride="idle" config={avatar} controls={false} />
+          </div>
+
+          <div>
+            <p className="eyebrow">Creator snippet</p>
+            <textarea className="snippet-output" readOnly value={creatorSnippet} />
+          </div>
+
+          <div>
+            <p className="eyebrow">Viewer snippet</p>
+            <textarea className="snippet-output" readOnly value={viewerSnippet} />
+          </div>
+        </aside>
       </section>
 
       <section className="demo-grid">
@@ -151,8 +336,10 @@ function DemoApp() {
   );
 }
 
+const publicEmbedId = getViewerRoute();
+
 createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <DemoApp />
+    {publicEmbedId ? <PublicAvatarViewer publicEmbedId={publicEmbedId} /> : <DemoApp />}
   </React.StrictMode>
 );

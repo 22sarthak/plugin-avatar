@@ -35,6 +35,7 @@ import "./styles.css";
 const STORAGE_KEY = "avatar-platform:studio-avatar";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
 const DEV_API_KEY = import.meta.env.VITE_DEV_AVATAR_API_KEY ?? "dev_avatar_platform_key";
+const DEMO_BASE_URL = import.meta.env.VITE_DEMO_BASE_URL ?? "http://localhost:5174";
 
 interface ApiAvatarResponse {
   avatarId: string;
@@ -44,6 +45,12 @@ interface ApiAvatarResponse {
   previewImageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface CreatorEmbedOptions {
+  clientId: string;
+  externalUserId?: string;
+  theme: "light" | "dark";
 }
 
 function loadInitialConfig(): AvatarConfig {
@@ -56,6 +63,21 @@ function loadInitialConfig(): AvatarConfig {
   return result.config ?? normalizeAvatarConfig(defaultAvatarConfig);
 }
 
+function getCreatorEmbedOptions(): CreatorEmbedOptions | null {
+  if (window.location.pathname !== "/embed/create") {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const theme = params.get("theme") === "dark" ? "dark" : "light";
+
+  return {
+    clientId: params.get("clientId") || "demo",
+    externalUserId: params.get("externalUserId") || undefined,
+    theme
+  };
+}
+
 function withUpdatedAt(config: AvatarConfig): AvatarConfig {
   return { ...config, updatedAt: new Date().toISOString() };
 }
@@ -64,7 +86,7 @@ function optionLabel(options: TraitOption[], value: string): string {
   return options.find((option) => option.id === value || option.value === value)?.label ?? value;
 }
 
-function StudioApp() {
+function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null }) {
   const [avatar, setAvatar] = useState<AvatarConfig>(() => loadInitialConfig());
   const [activeSection, setActiveSection] = useState("skin");
   const [status, setStatus] = useState("Ready");
@@ -77,9 +99,12 @@ function StudioApp() {
   const [publicEmbedId, setPublicEmbedId] = useState("");
   const [loadAvatarId, setLoadAvatarId] = useState("");
   const exportedJson = useMemo(() => serializeAvatarConfig(avatar), [avatar]);
-  const publicEmbedUrl = publicEmbedId ? `${API_BASE_URL.replace(/\/$/, "")}/v1/embed/${publicEmbedId}` : "";
+  const publicEmbedUrl = publicEmbedId ? `${DEMO_BASE_URL.replace(/\/$/, "")}/embed/avatar/${publicEmbedId}` : "";
+  const isEmbed = Boolean(embedOptions);
 
   useEffect(() => {
+    document.documentElement.dataset.theme = embedOptions?.theme ?? "light";
+
     return () => {
       if (selfieUrl) {
         URL.revokeObjectURL(selfieUrl);
@@ -172,28 +197,51 @@ function StudioApp() {
       const url = savedAvatarId
         ? `${API_BASE_URL.replace(/\/$/, "")}/v1/avatars/${savedAvatarId}`
         : `${API_BASE_URL.replace(/\/$/, "")}/v1/avatars`;
+      const body = savedAvatarId
+        ? { config: avatar }
+        : {
+            config: avatar,
+            externalUserId: embedOptions?.externalUserId,
+            displayName: embedOptions?.externalUserId
+          };
       const response = await fetch(url, {
         method: savedAvatarId ? "PUT" : "POST",
         headers: {
           "content-type": "application/json",
           "x-avatar-api-key": DEV_API_KEY
         },
-        body: JSON.stringify({ config: avatar })
+        body: JSON.stringify(body)
       });
-      const body = await response.json();
+      const responseBody = await response.json();
 
       if (!response.ok) {
-        const message = body?.message ?? "API save failed.";
+        const message = responseBody?.message ?? "API save failed.";
         setApiStatus(response.status === 401 ? "Unauthorized API key" : message);
         return;
       }
 
-      const saved = body as ApiAvatarResponse;
+      const saved = responseBody as ApiAvatarResponse;
       setSavedAvatarId(saved.avatarId);
       setPublicEmbedId(saved.publicEmbedId);
       setAvatar(normalizeAvatarConfig(saved.config));
       window.localStorage.setItem(STORAGE_KEY, serializeAvatarConfig(saved.config));
       setApiStatus(savedAvatarId ? "Updated API avatar" : "Saved API avatar");
+
+      if (isEmbed) {
+        // TODO: Replace "*" with a per-client allowed origin from Client.allowedOrigins before production.
+        window.parent.postMessage(
+          {
+            type: "AVATAR_CREATED",
+            payload: {
+              avatarId: saved.avatarId,
+              publicEmbedId: saved.publicEmbedId,
+              config: saved.config,
+              previewUrl: null
+            }
+          },
+          "*"
+        );
+      }
     } catch {
       setApiStatus("API unavailable. Local save still works.");
     }
@@ -281,13 +329,13 @@ function StudioApp() {
   };
 
   return (
-    <main className="studio-shell">
+    <main className={isEmbed ? "studio-shell embed-shell" : "studio-shell"}>
       <aside className="panel left-panel">
         <div className="brand-row">
           <span className="brand-mark">A</span>
           <div>
-            <p className="eyebrow">Manual creator MVP</p>
-            <h1>Avatar Studio</h1>
+            <p className="eyebrow">{isEmbed ? `Embedded creator / ${embedOptions?.clientId}` : "Manual creator MVP"}</p>
+            <h1>{isEmbed ? "Create Avatar" : "Avatar Studio"}</h1>
           </div>
         </div>
 
@@ -440,13 +488,17 @@ function StudioApp() {
           <p className="eyebrow">API Save / Load</p>
           <div className="api-card">
             <button className="primary" onClick={saveAvatarToApi} type="button">
-              {savedAvatarId ? "Update API Avatar" : "Save Avatar to API"}
+              {isEmbed ? "Save and Continue" : savedAvatarId ? "Update API Avatar" : "Save Avatar to API"}
             </button>
-            <label className="api-field">
-              <span>Load by avatar ID</span>
-              <input onChange={(event) => setLoadAvatarId(event.target.value)} placeholder="avatar id" value={loadAvatarId} />
-            </label>
-            <button onClick={loadAvatarFromApi} type="button">Load API Avatar</button>
+            {!isEmbed && (
+              <>
+                <label className="api-field">
+                  <span>Load by avatar ID</span>
+                  <input onChange={(event) => setLoadAvatarId(event.target.value)} placeholder="avatar id" value={loadAvatarId} />
+                </label>
+                <button onClick={loadAvatarFromApi} type="button">Load API Avatar</button>
+              </>
+            )}
             <p className="api-status">{apiStatus}</p>
             {savedAvatarId && (
               <dl className="api-meta">
@@ -696,6 +748,6 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <StudioApp />
+    <StudioApp embedOptions={getCreatorEmbedOptions()} />
   </React.StrictMode>
 );

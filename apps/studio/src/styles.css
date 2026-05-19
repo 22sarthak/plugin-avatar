@@ -18,6 +18,13 @@ body {
     linear-gradient(135deg, #f3eee5 0%, #e7ece8 52%, #f6f1e7 100%);
 }
 
+[data-theme="dark"] body {
+  color: #f8f3ea;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(97, 131, 126, 0.28), transparent 34%),
+    linear-gradient(135deg, #1f2725 0%, #273431 52%, #1e2524 100%);
+}
+
 button,
 textarea {
   font: inherit;
@@ -33,6 +40,64 @@ button {
   gap: 18px;
   min-height: 100vh;
   padding: 18px;
+}
+
+.embed-shell {
+  grid-template-columns: minmax(260px, 340px) minmax(360px, 1fr) minmax(260px, 330px);
+  gap: 12px;
+  min-height: 100vh;
+  padding: 12px;
+}
+
+.embed-shell .panel {
+  gap: 16px;
+  padding: 16px;
+  border-radius: 18px;
+}
+
+.embed-shell .viewer-card {
+  min-height: calc(100vh - 96px);
+  border-radius: 18px;
+}
+
+.embed-shell h1 {
+  font-size: 22px;
+}
+
+.embed-shell h2 {
+  font-size: 18px;
+}
+
+.embed-shell .json-output,
+.embed-shell .preset-list,
+.embed-shell .action-grid,
+.embed-shell .summary-list {
+  display: none;
+}
+
+[data-theme="dark"] .panel,
+[data-theme="dark"] .viewer-card,
+[data-theme="dark"] .status-pill {
+  border-color: rgba(245, 239, 230, 0.14);
+  background: rgba(35, 43, 41, 0.88);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="dark"] .tab,
+[data-theme="dark"] .segmented button,
+[data-theme="dark"] .api-card,
+[data-theme="dark"] .summary-list div {
+  color: #f8f3ea;
+  background: #2d3835;
+  border-color: rgba(245, 239, 230, 0.12);
+}
+
+[data-theme="dark"] .control-header p,
+[data-theme="dark"] .field-label,
+[data-theme="dark"] .api-status,
+[data-theme="dark"] .api-meta dt,
+[data-theme="dark"] .eyebrow {
+  color: #b6d0ca;
 }
 
 .panel,

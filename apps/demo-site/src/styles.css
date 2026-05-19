@@ -102,6 +102,93 @@ h2 {
   min-height: 640px;
 }
 
+.embed-showcase {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(320px, 440px);
+  gap: 18px;
+  min-height: 760px;
+}
+
+.iframe-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  min-height: 720px;
+  padding: 18px;
+  border: 1px solid rgba(99, 88, 75, 0.14);
+  border-radius: 24px;
+  background: rgba(255, 253, 248, 0.88);
+  box-shadow: 0 18px 60px rgba(54, 45, 35, 0.11);
+  backdrop-filter: blur(18px);
+}
+
+.iframe-card iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 660px;
+  border: 0;
+  border-radius: 18px;
+  background: #f8f5ef;
+}
+
+.card-heading {
+  display: grid;
+  gap: 2px;
+}
+
+.event-panel {
+  align-content: start;
+}
+
+.payload-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.payload-list div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f6f1e8;
+}
+
+.payload-list dt {
+  color: #6a625a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.payload-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
+.mini-viewer {
+  min-height: 300px;
+  overflow: hidden;
+  border: 1px solid rgba(99, 88, 75, 0.14);
+  border-radius: 18px;
+  background: #f8f5ef;
+}
+
+.snippet-output {
+  width: 100%;
+  min-height: 104px;
+  resize: vertical;
+  border: 1px solid rgba(89, 76, 62, 0.16);
+  border-radius: 14px;
+  padding: 12px;
+  color: #f8f2e8;
+  background: #1f2725;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .viewer-card {
   overflow: hidden;
 }
@@ -212,6 +299,26 @@ h2 {
   font-weight: 700;
 }
 
+.embed-viewer {
+  display: grid;
+  min-height: 100vh;
+  background: #f8f5ef;
+}
+
+.embed-viewer.transparent {
+  background: transparent;
+}
+
+.embed-viewer-status {
+  place-self: center;
+  padding: 14px 18px;
+  border: 1px solid rgba(99, 88, 75, 0.14);
+  border-radius: 14px;
+  color: #2f5f5b;
+  background: rgba(255, 253, 248, 0.88);
+  font-weight: 800;
+}
+
 @media (max-width: 920px) {
   .demo-shell {
     padding: 14px;
@@ -227,7 +334,16 @@ h2 {
     min-height: unset;
   }
 
+  .embed-showcase {
+    grid-template-columns: 1fr;
+    min-height: unset;
+  }
+
   .viewer-card {
     min-height: 480px;
+  }
+
+  .iframe-card {
+    min-height: 680px;
   }
 }
