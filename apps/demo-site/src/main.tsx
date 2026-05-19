@@ -6,12 +6,13 @@ import {
 } from "@avatar-platform/avatar-core";
 import { AvatarRenderer } from "@avatar-platform/avatar-renderer";
 import {
+  AvatarStudio,
   createAvatarCreatorUrl,
   createAvatarViewerUrl,
   isAvatarCreatedMessage,
   type AvatarCreatedMessage
 } from "@avatar-platform/avatar-sdk";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
@@ -135,6 +136,9 @@ function DemoApp() {
   const [embedStatus, setEmbedStatus] = useState("Enter a public embed ID saved from Studio.");
   const [loadedEmbed, setLoadedEmbed] = useState<PublicEmbedResponse | null>(null);
   const [receivedAvatar, setReceivedAvatar] = useState<AvatarCreatedMessage["payload"] | null>(null);
+  const [sdkStatus, setSdkStatus] = useState("SDK inline creator ready.");
+  const sdkInlineRef = useRef<HTMLDivElement | null>(null);
+  const modalHandleRef = useRef<{ destroy: () => void } | null>(null);
   const summary = useMemo(() => `${avatar.hairStyle} / ${avatar.outfit} / ${avatar.animation}`, [avatar]);
   const creatorUrl = createAvatarCreatorUrl({
     baseUrl: STUDIO_BASE_URL,
@@ -154,6 +158,19 @@ function DemoApp() {
   const viewerSnippet = viewerUrl
     ? `<iframe src="${viewerUrl}" title="Avatar viewer" style="width:100%;height:520px;border:0;border-radius:16px;"></iframe>`
     : "Create and save an avatar to generate a viewer iframe snippet.";
+  const sdkInlineSnippet = `const handle = AvatarStudio.init({
+  container: "#avatar-sdk-inline",
+  clientId: "demo",
+  externalUserId: "user_123",
+  studioBaseUrl: "${STUDIO_BASE_URL}",
+  onAvatarCreated: (event) => console.log(event)
+});`;
+  const sdkModalSnippet = `AvatarStudio.openModal({
+  clientId: "demo",
+  externalUserId: "user_123",
+  studioBaseUrl: "${STUDIO_BASE_URL}",
+  onAvatarCreated: (event) => console.log(event)
+});`;
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -172,6 +189,57 @@ function DemoApp() {
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, []);
+
+  useEffect(() => {
+    if (!sdkInlineRef.current) {
+      return;
+    }
+
+    const handle = AvatarStudio.init({
+      container: sdkInlineRef.current,
+      clientId: "demo",
+      externalUserId: "sdk_inline_user",
+      mode: "create",
+      studioBaseUrl: STUDIO_BASE_URL,
+      theme: "light",
+      onAvatarCreated: (payload) => {
+        setReceivedAvatar(payload);
+        setAvatar(payload.config);
+        setJsonInput(serializeAvatarConfig(payload.config));
+        window.localStorage.setItem(STORAGE_KEY, serializeAvatarConfig(payload.config));
+        setSdkStatus("SDK inline creator received AVATAR_CREATED.");
+      },
+      onError: (sdkError) => setSdkStatus(sdkError.message)
+    });
+
+    return () => handle.destroy();
+  }, []);
+
+  useEffect(() => {
+    return () => modalHandleRef.current?.destroy();
+  }, []);
+
+  const openSdkModal = () => {
+    modalHandleRef.current?.destroy();
+    modalHandleRef.current = AvatarStudio.openModal({
+      clientId: "demo",
+      externalUserId: "sdk_modal_user",
+      studioBaseUrl: STUDIO_BASE_URL,
+      theme: "light",
+      onAvatarCreated: (payload) => {
+        setReceivedAvatar(payload);
+        setAvatar(payload.config);
+        setJsonInput(serializeAvatarConfig(payload.config));
+        window.localStorage.setItem(STORAGE_KEY, serializeAvatarConfig(payload.config));
+        setSdkStatus("SDK modal received AVATAR_CREATED.");
+      },
+      onClose: () => {
+        modalHandleRef.current = null;
+        setSdkStatus("SDK modal closed.");
+      },
+      onError: (sdkError) => setSdkStatus(sdkError.message)
+    });
+  };
 
   const importJson = () => {
     const result = parseAvatarConfigJson(jsonInput);
@@ -283,6 +351,35 @@ function DemoApp() {
           <div>
             <p className="eyebrow">Viewer snippet</p>
             <textarea className="snippet-output" readOnly value={viewerSnippet} />
+          </div>
+        </aside>
+      </section>
+
+      <section className="sdk-showcase">
+        <div className="sdk-card">
+          <div className="card-heading">
+            <p className="eyebrow">JS SDK inline</p>
+            <h2>AvatarStudio.init</h2>
+          </div>
+          <div className="sdk-inline-frame" id="avatar-sdk-inline" ref={sdkInlineRef} />
+          <p className="embed-status">{sdkStatus}</p>
+        </div>
+
+        <aside className="panel event-panel">
+          <div>
+            <p className="eyebrow">JS SDK modal</p>
+            <h2>AvatarStudio.openModal</h2>
+          </div>
+          <button className="primary sdk-modal-button" onClick={openSdkModal} type="button">
+            Open SDK Creator Modal
+          </button>
+          <div>
+            <p className="eyebrow">Inline snippet</p>
+            <textarea className="snippet-output" readOnly value={sdkInlineSnippet} />
+          </div>
+          <div>
+            <p className="eyebrow">Modal snippet</p>
+            <textarea className="snippet-output" readOnly value={sdkModalSnippet} />
           </div>
         </aside>
       </section>

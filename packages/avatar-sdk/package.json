@@ -4,15 +4,17 @@
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
+  "browser": "./dist/avatar-studio.iife.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./browser": "./dist/avatar-studio.iife.js"
   },
   "scripts": {
-    "build": "tsc -b tsconfig.json",
+    "build": "tsc -b tsconfig.json && vite build",
     "typecheck": "tsc -b tsconfig.json",
     "lint": "tsc -b tsconfig.json"
   },
@@ -20,6 +22,7 @@
     "@avatar-platform/avatar-core": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vite": "^5.2.12"
   }
 }
