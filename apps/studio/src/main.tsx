@@ -22,7 +22,7 @@ import {
   type TraitOption
 } from "@avatar-platform/avatar-core";
 import { AvatarRenderer } from "@avatar-platform/avatar-renderer";
-import type { AvatarOneShotAnimation } from "@avatar-platform/avatar-renderer";
+import type { AvatarOneShotAnimation, AvatarRendererCaptureHandle } from "@avatar-platform/avatar-renderer";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -37,6 +37,7 @@ const STORAGE_KEY = "avatar-platform:studio-avatar";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
 const DEV_API_KEY = import.meta.env.VITE_DEV_AVATAR_API_KEY ?? "dev_avatar_platform_key";
 const DEMO_BASE_URL = import.meta.env.VITE_DEMO_BASE_URL ?? "http://localhost:5174";
+const STUDIO_BASE_URL = import.meta.env.VITE_STUDIO_BASE_URL ?? window.location.origin;
 
 interface ApiAvatarResponse {
   avatarId: string;
@@ -87,6 +88,23 @@ function optionLabel(options: TraitOption[], value: string): string {
   return options.find((option) => option.id === value || option.value === value)?.label ?? value;
 }
 
+function downloadTextFile(filename: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadDataUrl(filename: string, dataUrl: string) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  link.click();
+}
+
 function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null }) {
   const [avatar, setAvatar] = useState<AvatarConfig>(() => loadInitialConfig());
   const [activeSection, setActiveSection] = useState("skin");
@@ -100,8 +118,40 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
   const [publicEmbedId, setPublicEmbedId] = useState("");
   const [loadAvatarId, setLoadAvatarId] = useState("");
   const [oneShotAnimation, setOneShotAnimation] = useState<AvatarOneShotAnimation | null>(null);
+  const captureRef = useRef<AvatarRendererCaptureHandle>(null);
   const exportedJson = useMemo(() => serializeAvatarConfig(avatar), [avatar]);
   const publicEmbedUrl = publicEmbedId ? `${DEMO_BASE_URL.replace(/\/$/, "")}/embed/avatar/${publicEmbedId}` : "";
+  const creatorEmbedUrl = useMemo(() => {
+    const url = new URL(`${STUDIO_BASE_URL.replace(/\/$/, "")}/embed/create`);
+    url.searchParams.set("clientId", embedOptions?.clientId ?? "demo");
+    if (embedOptions?.externalUserId) {
+      url.searchParams.set("externalUserId", embedOptions.externalUserId);
+    } else {
+      url.searchParams.set("externalUserId", "user_123");
+    }
+    url.searchParams.set("theme", embedOptions?.theme ?? "light");
+    return url.toString();
+  }, [embedOptions]);
+  const viewerIframeSnippet = publicEmbedUrl
+    ? `<iframe src="${publicEmbedUrl}?animation=idle&controls=true" title="Avatar viewer" style="width:100%;height:520px;border:0;border-radius:16px;"></iframe>`
+    : "";
+  const creatorIframeSnippet = `<iframe src="${creatorEmbedUrl}" title="Create your avatar" style="width:100%;height:720px;border:0;border-radius:16px;"></iframe>`;
+  const sdkCreatorSnippet = `AvatarStudio.openModal({
+  clientId: "${embedOptions?.clientId ?? "demo"}",
+  externalUserId: "${embedOptions?.externalUserId ?? "user_123"}",
+  theme: "${embedOptions?.theme ?? "light"}",
+  studioBaseUrl: "${STUDIO_BASE_URL.replace(/\/$/, "")}",
+  onAvatarCreated: (event) => console.log(event)
+});`;
+  const sdkViewerSnippet = publicEmbedId
+    ? `AvatarStudio.renderAvatar({
+  container: "#avatar-viewer",
+  publicEmbedId: "${publicEmbedId}",
+  studioBaseUrl: "${DEMO_BASE_URL.replace(/\/$/, "")}",
+  animation: "idle",
+  controls: true
+});`
+    : "";
   const isEmbed = Boolean(embedOptions);
 
   useEffect(() => {
@@ -305,14 +355,33 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
   };
 
   const exportJson = () => {
-    const blob = new Blob([exportedJson], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "avatar-config.json";
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile("avatar-config.json", exportedJson, "application/json");
     setStatus("Exported JSON");
+  };
+
+  const copyExportText = async (label: string, value: string) => {
+    if (!value) {
+      setStatus("Save to API first");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      setStatus(`Copied ${label}`);
+    } catch {
+      setStatus(`Clipboard unavailable for ${label}`);
+    }
+  };
+
+  const downloadScreenshot = () => {
+    const image = captureRef.current?.capturePng();
+    if (!image) {
+      setStatus("Screenshot unavailable");
+      return;
+    }
+
+    downloadDataUrl("avatar-preview.png", image);
+    setStatus("Downloaded PNG screenshot");
   };
 
   const importFromClipboard = async () => {
@@ -466,6 +535,7 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
         </div>
         <div className="viewer-card">
           <AvatarRenderer
+            captureRef={captureRef}
             config={avatar}
             oneShotAnimation={oneShotAnimation}
             onOneShotComplete={() => {
@@ -503,9 +573,32 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
         <section className="action-grid">
           <button className="primary" onClick={saveAvatar} type="button">Save</button>
           <button onClick={loadAvatar} type="button">Load</button>
-          <button onClick={exportJson} type="button">Export JSON</button>
           <button onClick={importFromClipboard} type="button">Import Clipboard</button>
           <button className="danger" onClick={resetAvatar} type="button">Reset</button>
+        </section>
+
+        <section>
+          <p className="eyebrow">Exports</p>
+          <div className="export-card">
+            <button className="primary" onClick={exportJson} type="button">Download JSON</button>
+            <button disabled={!publicEmbedId} onClick={() => copyExportText("public avatar URL", publicEmbedUrl)} type="button">
+              Copy public avatar URL
+            </button>
+            <button disabled={!publicEmbedId} onClick={() => copyExportText("viewer iframe", viewerIframeSnippet)} type="button">
+              Copy viewer iframe
+            </button>
+            <button onClick={() => copyExportText("creator iframe", creatorIframeSnippet)} type="button">
+              Copy creator iframe
+            </button>
+            <button onClick={() => copyExportText("SDK creator snippet", sdkCreatorSnippet)} type="button">
+              Copy SDK creator modal
+            </button>
+            <button disabled={!publicEmbedId} onClick={() => copyExportText("SDK viewer snippet", sdkViewerSnippet)} type="button">
+              Copy SDK renderAvatar
+            </button>
+            <button onClick={downloadScreenshot} type="button">Download PNG screenshot</button>
+            {!publicEmbedId && <p className="export-note">Save to API first to unlock public URL and viewer snippets.</p>}
+          </div>
         </section>
 
         <section>

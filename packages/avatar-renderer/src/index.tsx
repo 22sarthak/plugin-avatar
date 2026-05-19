@@ -1,7 +1,7 @@
 import type { AnimationName, AvatarConfig, FaceShape, HairStyle, Outfit } from "@avatar-platform/avatar-core";
 import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import type { CSSProperties, Ref } from "react";
 import type { Group } from "three";
 
@@ -15,8 +15,13 @@ export type AvatarOneShotAnimation =
 
 export type AvatarAnimationOverride = AnimationName | "idle" | "bounce" | "celebrate";
 
+export interface AvatarRendererCaptureHandle {
+  capturePng: () => string | null;
+}
+
 export interface AvatarRendererProps {
   config: AvatarConfig;
+  captureRef?: Ref<AvatarRendererCaptureHandle>;
   className?: string;
   controls?: boolean;
   transparent?: boolean;
@@ -801,6 +806,7 @@ function AnimatedAvatar({
 
 export function AvatarRenderer({
   animationOverride,
+  captureRef,
   config,
   className,
   controls = true,
@@ -809,9 +815,26 @@ export function AvatarRenderer({
   transparent = false,
   style
 }: AvatarRendererProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useImperativeHandle(
+    captureRef,
+    () => ({
+      capturePng: () => canvasRef.current?.toDataURL("image/png") ?? null
+    }),
+    []
+  );
+
   return (
     <div className={className} style={{ width: "100%", height: "100%", minHeight: 360, ...style }}>
-      <Canvas shadows camera={{ position: [0, 1.48, 3.25], fov: 34 }} gl={{ alpha: transparent }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, 1.48, 3.25], fov: 34 }}
+        gl={{ alpha: transparent, preserveDrawingBuffer: Boolean(captureRef) }}
+        onCreated={({ gl }) => {
+          canvasRef.current = gl.domElement;
+        }}
+      >
         {!transparent && <color attach="background" args={["#f8f5ef"]} />}
         <ambientLight intensity={0.88} />
         <directionalLight castShadow position={[2.8, 4.3, 3.2]} intensity={1.25} shadow-mapSize={[1536, 1536]} />

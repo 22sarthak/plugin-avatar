@@ -494,7 +494,8 @@ h2 {
   background: #f6f1e8;
 }
 
-.api-card button {
+.api-card button,
+.export-card button {
   min-height: 40px;
   border: 1px solid rgba(89, 76, 62, 0.16);
   border-radius: 12px;
@@ -502,9 +503,30 @@ h2 {
   background: #fffdfa;
 }
 
-.api-card button.primary {
+.api-card button.primary,
+.export-card button.primary {
   color: #fffdfa;
   background: #2f5f5b;
+}
+
+.export-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #f6f1e8;
+}
+
+.export-card button:disabled {
+  cursor: not-allowed;
+  color: #8c8175;
+  background: #eee7dc;
+}
+
+.export-note {
+  color: #655d55;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .api-field {

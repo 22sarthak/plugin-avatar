@@ -340,6 +340,39 @@ h2 {
   background: #f6f1e8;
 }
 
+.export-example-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #f6f1e8;
+}
+
+.export-example-card label {
+  display: grid;
+  gap: 6px;
+}
+
+.export-example-card span {
+  color: #6a625a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.export-example-card textarea {
+  width: 100%;
+  min-height: 76px;
+  resize: vertical;
+  border: 1px solid rgba(89, 76, 62, 0.16);
+  border-radius: 12px;
+  padding: 10px;
+  color: #f8f2e8;
+  background: #1f2725;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .embed-preview span,
 .embed-preview small {
   color: #6a625a;

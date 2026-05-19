@@ -143,16 +143,18 @@ function DemoApp() {
   const sdkInlineRef = useRef<HTMLDivElement | null>(null);
   const modalHandleRef = useRef<{ destroy: () => void } | null>(null);
   const summary = useMemo(() => `${avatar.hairStyle} / ${avatar.outfit} / ${avatar.animation}`, [avatar]);
+  const effectivePublicEmbedId = receivedAvatar?.publicEmbedId ?? loadedEmbed?.publicEmbedId ?? "";
+  const publicAvatarUrl = effectivePublicEmbedId ? `${DEMO_BASE_URL.replace(/\/$/, "")}/embed/avatar/${effectivePublicEmbedId}` : "";
   const creatorUrl = createAvatarCreatorUrl({
     baseUrl: STUDIO_BASE_URL,
     clientId: "demo",
     externalUserId: "user_123",
     theme: "light"
   });
-  const viewerUrl = receivedAvatar
+  const viewerUrl = effectivePublicEmbedId
     ? createAvatarViewerUrl({
         baseUrl: DEMO_BASE_URL,
-        publicEmbedId: receivedAvatar.publicEmbedId,
+        publicEmbedId: effectivePublicEmbedId,
         animation: viewerAnimation,
         controls: true
       })
@@ -168,10 +170,10 @@ function DemoApp() {
   studioBaseUrl: "${STUDIO_BASE_URL}",
   onAvatarCreated: (event) => console.log(event)
 });`;
-  const sdkViewerSnippet = receivedAvatar
+  const sdkViewerSnippet = effectivePublicEmbedId
     ? `AvatarStudio.renderAvatar({
   container: "#avatar-viewer",
-  publicEmbedId: "${receivedAvatar.publicEmbedId}",
+  publicEmbedId: "${effectivePublicEmbedId}",
   studioBaseUrl: "${DEMO_BASE_URL}",
   animation: "${viewerAnimation}",
   controls: true
@@ -421,6 +423,31 @@ function DemoApp() {
         </div>
 
         <aside className="panel">
+          <div>
+            <p className="eyebrow">Export examples</p>
+            <h2>Public sharing</h2>
+          </div>
+          <div className="export-example-card">
+            {effectivePublicEmbedId ? (
+              <>
+                <label>
+                  <span>Public URL</span>
+                  <textarea readOnly value={publicAvatarUrl} />
+                </label>
+                <label>
+                  <span>Viewer iframe</span>
+                  <textarea readOnly value={viewerSnippet} />
+                </label>
+                <label>
+                  <span>SDK renderAvatar</span>
+                  <textarea readOnly value={sdkViewerSnippet} />
+                </label>
+              </>
+            ) : (
+              <p className="embed-status">Create or load an avatar to generate public export examples.</p>
+            )}
+          </div>
+
           <div>
             <p className="eyebrow">Public embed</p>
             <h2>Load by publicEmbedId</h2>
