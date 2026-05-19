@@ -32,67 +32,67 @@ export interface AvatarRendererProps {
 }
 
 const skinToneColors: Record<string, string> = {
-  porcelain: "#f4cdbc",
-  fair: "#f4cdbc",
-  sand: "#dfad88",
-  light: "#dfad88",
-  amber: "#c6855a",
-  medium: "#c6855a",
-  copper: "#9b6242",
-  tan: "#9b6242",
-  mahogany: "#62402f",
-  deep: "#62402f"
+  porcelain: "#f6cfbf",
+  fair: "#f6cfbf",
+  sand: "#e3b08e",
+  light: "#e3b08e",
+  amber: "#c98760",
+  medium: "#c98760",
+  copper: "#9d6648",
+  tan: "#9d6648",
+  mahogany: "#654231",
+  deep: "#654231"
 };
 
 const skinBlushColors: Record<string, string> = {
-  porcelain: "#f0aa9f",
-  sand: "#ce8d77",
-  amber: "#ae674f",
-  copper: "#854a39",
-  mahogany: "#4b2c25"
+  porcelain: "#efaaa1",
+  sand: "#cf917d",
+  amber: "#b66f59",
+  copper: "#8e5442",
+  mahogany: "#563227"
 };
 
 const outfitColors: Record<Outfit | string, string> = {
-  "studio-hoodie": "#5d8580",
-  "tailored-jacket": "#26313b",
-  "tech-tee": "#9d705c",
-  "soft-knit": "#c9ad66",
-  "space-suit": "#ebe8dd"
+  "studio-hoodie": "#4f7874",
+  "tailored-jacket": "#27333a",
+  "tech-tee": "#927061",
+  "soft-knit": "#c3a968",
+  "space-suit": "#ece8dc"
 };
 
 const outfitTrimColors: Record<Outfit | string, string> = {
-  "studio-hoodie": "#f5efe6",
-  "tailored-jacket": "#f0e7dc",
-  "tech-tee": "#e7d5c7",
-  "soft-knit": "#f5e7bc",
-  "space-suit": "#94bfc6"
+  "studio-hoodie": "#efe8dc",
+  "tailored-jacket": "#eee2d4",
+  "tech-tee": "#dfcab8",
+  "soft-knit": "#f0dfaa",
+  "space-suit": "#8fbec5"
 };
 
 const hairPalettes: Record<string, string> = {
-  "#15110f": "#201815",
-  "#2f1d14": "#41291d",
-  "#4b2e22": "#5d3a29",
-  "#7f3f2a": "#914e35",
-  "#caa968": "#d8bd7a",
-  "#b8bcc0": "#c8ccd0",
-  "#247476": "#2c8585"
+  "#15110f": "#231916",
+  "#2f1d14": "#3c271d",
+  "#4b2e22": "#5a3829",
+  "#7f3f2a": "#8b4a34",
+  "#caa968": "#d6bd7d",
+  "#b8bcc0": "#c9ced0",
+  "#247476": "#2b8282"
 };
 
 const faceScale: Record<FaceShape | string, [number, number, number]> = {
-  round: [1.04, 0.96, 0.98],
-  oval: [0.96, 1.1, 0.98],
-  square: [1.06, 1.01, 0.96],
-  heart: [1.03, 1.07, 0.98],
-  long: [0.91, 1.2, 0.96]
+  round: [1.02, 0.98, 0.98],
+  oval: [0.97, 1.08, 0.98],
+  square: [1.04, 1.01, 0.97],
+  heart: [1.02, 1.06, 0.98],
+  long: [0.93, 1.16, 0.97]
 };
 
 const hairScale: Record<HairStyle | string, [number, number, number]> = {
-  "short-textured": [1.02, 0.64, 0.98],
-  bob: [1.12, 0.9, 1.04],
-  curly: [1.12, 0.78, 1.06],
-  "high-puff": [0.92, 1.2, 0.92],
-  "side-sweep": [1.12, 0.66, 0.98],
-  buzz: [0.94, 0.3, 0.94]
+  "short-textured": [1.04, 0.58, 1],
+  bob: [1.12, 0.88, 1.05],
+  curly: [1.1, 0.76, 1.08],
+  "high-puff": [0.92, 1.12, 0.94],
+  "side-sweep": [1.13, 0.62, 1],
+  buzz: [0.96, 0.24, 0.96]
 };
 
 const animationAliases: Record<string, AnimationName> = {
@@ -174,47 +174,90 @@ function RoundedTorso({
   trimColor: string;
 }) {
   const torsoScale: [number, number, number] =
-    outfit === "space-suit" ? [0.72, 0.58, 0.34] : [0.64, 0.56, 0.3];
+    outfit === "space-suit" ? [0.74, 0.54, 0.34] : [0.66, 0.54, 0.3];
   const shoulderScale: [number, number, number] =
-    outfit === "tailored-jacket" ? [0.82, 0.16, 0.32] : [0.76, 0.16, 0.3];
+    outfit === "tailored-jacket" ? [0.9, 0.18, 0.34] : [0.84, 0.17, 0.32];
+  const fabricRoughness = outfit === "space-suit" ? 0.78 : 0.91;
 
   return (
     <group name="body" position={[0, 0.72, 0]}>
-      <mesh castShadow receiveShadow position={[0, 0.02, 0]} scale={torsoScale}>
+      <mesh castShadow receiveShadow position={[0, -0.03, 0]} scale={torsoScale}>
         <sphereGeometry args={[1, 48, 32]} />
-        <SoftMaterial color={outfitColor} roughness={0.88} metalness={outfit === "space-suit" ? 0.04 : 0} />
+        <SoftMaterial color={outfitColor} roughness={fabricRoughness} metalness={outfit === "space-suit" ? 0.03 : 0} />
       </mesh>
       <mesh castShadow receiveShadow position={[0, 0.34, 0]} scale={shoulderScale}>
         <sphereGeometry args={[1, 40, 24]} />
-        <SoftMaterial color={outfitColor} roughness={0.86} metalness={outfit === "space-suit" ? 0.04 : 0} />
+        <SoftMaterial color={outfitColor} roughness={fabricRoughness} metalness={outfit === "space-suit" ? 0.03 : 0} />
       </mesh>
-      <mesh position={[0, 0.34, 0.255]} rotation={[0, 0, Math.PI]}>
-        <torusGeometry args={[0.2, 0.016, 12, 44, Math.PI]} />
+      <mesh castShadow receiveShadow position={[-0.48, 0.23, 0.02]} rotation={[0.08, 0, 0.55]} scale={[0.72, 0.7, 0.92]}>
+        <capsuleGeometry args={[0.105, 0.28, 14, 28]} />
+        <SoftMaterial color={outfitColor} roughness={fabricRoughness} metalness={outfit === "space-suit" ? 0.03 : 0} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0.48, 0.23, 0.02]} rotation={[0.08, 0, -0.55]} scale={[0.72, 0.7, 0.92]}>
+        <capsuleGeometry args={[0.105, 0.28, 14, 28]} />
+        <SoftMaterial color={outfitColor} roughness={fabricRoughness} metalness={outfit === "space-suit" ? 0.03 : 0} />
+      </mesh>
+      <mesh position={[0, 0.36, 0.284]} rotation={[0.08, 0, Math.PI]}>
+        <torusGeometry args={[0.205, 0.014, 14, 52, Math.PI]} />
         <SoftMaterial color={trimColor} roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 0.32, 0.294]} scale={[0.17, 0.08, 0.018]}>
+        <sphereGeometry args={[1, 24, 14]} />
+        <SoftMaterial color={trimColor} roughness={0.88} />
       </mesh>
       {outfit === "studio-hoodie" && (
         <>
-          <mesh position={[-0.065, 0.16, 0.298]} rotation={[0.12, 0, 0.08]}>
-            <capsuleGeometry args={[0.012, 0.28, 8, 16]} />
+          <mesh castShadow position={[-0.19, 0.39, 0.13]} rotation={[0.18, 0.14, -0.34]} scale={[0.72, 0.9, 0.72]}>
+            <torusGeometry args={[0.23, 0.035, 12, 42, Math.PI]} />
             <SoftMaterial color={trimColor} roughness={0.9} />
           </mesh>
-          <mesh position={[0.065, 0.16, 0.298]} rotation={[0.12, 0, -0.08]}>
-            <capsuleGeometry args={[0.012, 0.28, 8, 16]} />
+          <mesh position={[-0.065, 0.16, 0.312]} rotation={[0.12, 0, 0.08]}>
+            <capsuleGeometry args={[0.01, 0.28, 8, 16]} />
+            <SoftMaterial color={trimColor} roughness={0.9} />
+          </mesh>
+          <mesh position={[0.065, 0.16, 0.312]} rotation={[0.12, 0, -0.08]}>
+            <capsuleGeometry args={[0.01, 0.28, 8, 16]} />
             <SoftMaterial color={trimColor} roughness={0.9} />
           </mesh>
         </>
       )}
       {outfit === "tailored-jacket" && (
-        <mesh position={[0, 0.12, 0.305]} rotation={[0, 0, Math.PI / 2]}>
-          <capsuleGeometry args={[0.014, 0.42, 8, 18]} />
-          <SoftMaterial color={trimColor} roughness={0.84} />
-        </mesh>
+        <>
+          <mesh position={[-0.09, 0.17, 0.318]} rotation={[0.08, 0, -0.42]}>
+            <capsuleGeometry args={[0.014, 0.34, 8, 18]} />
+            <SoftMaterial color={trimColor} roughness={0.84} />
+          </mesh>
+          <mesh position={[0.09, 0.17, 0.318]} rotation={[0.08, 0, 0.42]}>
+            <capsuleGeometry args={[0.014, 0.34, 8, 18]} />
+            <SoftMaterial color={trimColor} roughness={0.84} />
+          </mesh>
+          <mesh position={[0, 0.04, 0.322]} scale={[0.045, 0.025, 0.008]}>
+            <sphereGeometry args={[1, 18, 12]} />
+            <SoftMaterial color="#d8bc67" metalness={0.18} roughness={0.36} />
+          </mesh>
+        </>
       )}
       {outfit === "space-suit" && (
-        <mesh position={[0, 0.12, 0.33]} scale={[0.22, 0.09, 0.035]}>
-          <sphereGeometry args={[1, 24, 16]} />
-          <SoftMaterial color="#9bcad0" roughness={0.42} metalness={0.08} />
-        </mesh>
+        <>
+          <mesh position={[0, 0.12, 0.336]} scale={[0.22, 0.09, 0.035]}>
+            <sphereGeometry args={[1, 24, 16]} />
+            <SoftMaterial color="#9bcad0" roughness={0.38} metalness={0.08} />
+          </mesh>
+          <mesh position={[0, 0.38, 0.18]} rotation={[0.02, 0, Math.PI]}>
+            <torusGeometry args={[0.235, 0.022, 14, 52, Math.PI]} />
+            <SoftMaterial color="#d8ecec" roughness={0.48} metalness={0.04} />
+          </mesh>
+        </>
+      )}
+      {outfit === "soft-knit" && (
+        <>
+          {[-0.2, 0, 0.2].map((x) => (
+            <mesh key={x} position={[x, 0.02, 0.31]} rotation={[0.05, 0, 0]}>
+              <capsuleGeometry args={[0.006, 0.34, 6, 12]} />
+              <SoftMaterial color="#d8c17c" roughness={0.94} />
+            </mesh>
+          ))}
+        </>
       )}
     </group>
   );
@@ -232,13 +275,17 @@ function Arm({
   armRef: Ref<Group>;
 }) {
   return (
-    <group ref={armRef} position={[side * 0.55, 1.02, 0.02]} rotation={[0, 0, side * 0.22]}>
-      <mesh castShadow position={[0, -0.23, 0]} rotation={[0, 0, side * 0.05]}>
-        <capsuleGeometry args={[0.075, 0.42, 12, 22]} />
-        <SoftMaterial color={outfitColor} roughness={0.88} />
+    <group ref={armRef} position={[side * 0.58, 1.04, 0.015]} rotation={[0, 0, side * 0.2]}>
+      <mesh castShadow position={[0, -0.22, 0]} rotation={[0.02, 0, side * 0.06]} scale={[0.92, 1, 0.94]}>
+        <capsuleGeometry args={[0.082, 0.43, 14, 24]} />
+        <SoftMaterial color={outfitColor} roughness={0.91} />
       </mesh>
-      <mesh castShadow position={[0, -0.53, 0.018]} scale={[1, 0.88, 1]}>
-        <sphereGeometry args={[0.088, 24, 18]} />
+      <mesh castShadow position={[0, -0.445, 0.012]} scale={[0.82, 0.48, 0.82]}>
+        <sphereGeometry args={[0.11, 22, 16]} />
+        <SoftMaterial color={outfitColor} roughness={0.92} />
+      </mesh>
+      <mesh castShadow position={[0, -0.55, 0.02]} scale={[1, 0.86, 1]}>
+        <sphereGeometry args={[0.084, 26, 18]} />
         <SoftMaterial color={skinColor} roughness={0.82} />
       </mesh>
     </group>
@@ -303,6 +350,24 @@ function FaceShapeDetails({
     );
   }
 
+  if (faceShape === "long") {
+    return (
+      <mesh castShadow position={[0, -0.33, 0.05]} scale={[0.16, 0.13, 0.11]}>
+        <sphereGeometry args={[1, 22, 16]} />
+        <SoftMaterial color={skinColor} roughness={0.84} />
+      </mesh>
+    );
+  }
+
+  if (faceShape === "oval") {
+    return (
+      <mesh castShadow position={[0, -0.28, 0.06]} scale={[0.18, 0.09, 0.1]}>
+        <sphereGeometry args={[1, 22, 16]} />
+        <SoftMaterial color={skinColor} roughness={0.84} />
+      </mesh>
+    );
+  }
+
   return null;
 }
 
@@ -317,10 +382,10 @@ function HairSculpt({
 }) {
   const refinedHairColor = hairPalettes[hairColor.toLowerCase()] ?? hairColor;
   const frontTufts: Array<[number, number, number, number]> = [
-    [-0.26, 0.22, 0.27, 0.13],
-    [-0.1, 0.28, 0.32, 0.15],
-    [0.08, 0.28, 0.31, 0.14],
-    [0.25, 0.22, 0.26, 0.12]
+    [-0.27, 0.19, 0.3, 0.12],
+    [-0.11, 0.27, 0.34, 0.145],
+    [0.08, 0.27, 0.335, 0.135],
+    [0.25, 0.18, 0.29, 0.11]
   ];
 
   if (hairStyle === "buzz") {
@@ -334,21 +399,41 @@ function HairSculpt({
 
   return (
     <group>
-      <mesh castShadow position={[0, 0.25, -0.02]} scale={activeHairScale}>
+      <mesh castShadow position={[0, 0.25, -0.025]} scale={activeHairScale}>
         <sphereGeometry args={[0.438, 48, 20, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <SoftMaterial color={refinedHairColor} roughness={0.92} />
       </mesh>
+      <mesh castShadow position={[0, 0.09, -0.22]} scale={[0.92, 0.5, 0.54]}>
+        <sphereGeometry args={[0.36, 34, 18]} />
+        <SoftMaterial color={refinedHairColor} roughness={0.94} />
+      </mesh>
+      {hairStyle !== "high-puff" && (
+        <>
+          <mesh castShadow position={[-0.34, 0.05, 0.08]} rotation={[0.16, 0, -0.13]} scale={[0.8, 1.05, 0.74]}>
+            <capsuleGeometry args={[0.065, 0.2, 10, 20]} />
+            <SoftMaterial color={refinedHairColor} roughness={0.94} />
+          </mesh>
+          <mesh castShadow position={[0.34, 0.05, 0.08]} rotation={[0.16, 0, 0.13]} scale={[0.8, 1.05, 0.74]}>
+            <capsuleGeometry args={[0.065, 0.2, 10, 20]} />
+            <SoftMaterial color={refinedHairColor} roughness={0.94} />
+          </mesh>
+        </>
+      )}
 
       {hairStyle === "short-textured" && (
         <>
           {frontTufts.map(([x, y, z, size]) => (
-            <mesh key={`${x}-${size}`} castShadow position={[x, y, z]} scale={[1.05, 0.72, 0.84]}>
+            <mesh key={`${x}-${size}`} castShadow position={[x, y, z]} rotation={[0.12, 0, -x * 0.5]} scale={[1.18, 0.72, 0.82]}>
               <sphereGeometry args={[size, 22, 16]} />
               <SoftMaterial color={refinedHairColor} roughness={0.94} />
             </mesh>
           ))}
-          <mesh castShadow position={[0.32, 0.09, 0.08]} rotation={[0.35, 0.05, -0.08]}>
-            <capsuleGeometry args={[0.07, 0.22, 10, 20]} />
+          <mesh castShadow position={[0.31, 0.09, 0.12]} rotation={[0.35, 0.05, -0.1]}>
+            <capsuleGeometry args={[0.06, 0.2, 10, 20]} />
+            <SoftMaterial color={refinedHairColor} roughness={0.94} />
+          </mesh>
+          <mesh castShadow position={[-0.31, 0.08, 0.1]} rotation={[0.35, -0.05, 0.1]}>
+            <capsuleGeometry args={[0.055, 0.16, 10, 20]} />
             <SoftMaterial color={refinedHairColor} roughness={0.94} />
           </mesh>
         </>
@@ -357,17 +442,21 @@ function HairSculpt({
       {hairStyle === "side-sweep" && (
         <>
           {[
-            [-0.15, 0.3, 0.31, 0.15],
-            [0.07, 0.28, 0.33, 0.17],
-            [0.28, 0.18, 0.27, 0.14]
+            [-0.2, 0.29, 0.315, 0.13],
+            [0.02, 0.29, 0.35, 0.17],
+            [0.25, 0.2, 0.31, 0.15]
           ].map(([x, y, z, size]) => (
-            <mesh key={`${x}-${z}`} castShadow position={[x, y, z]} rotation={[0.1, 0, -0.22]} scale={[1.4, 0.72, 0.9]}>
+            <mesh key={`${x}-${z}`} castShadow position={[x, y, z]} rotation={[0.1, 0, -0.28]} scale={[1.55, 0.68, 0.9]}>
               <sphereGeometry args={[size, 24, 16]} />
               <SoftMaterial color={refinedHairColor} roughness={0.93} />
             </mesh>
           ))}
-          <mesh castShadow position={[0.36, 0.01, 0.03]} rotation={[0.12, 0, -0.12]}>
-            <capsuleGeometry args={[0.095, 0.32, 10, 22]} />
+          <mesh castShadow position={[-0.08, 0.18, 0.37]} rotation={[0.3, 0, 0.95]}>
+            <capsuleGeometry args={[0.02, 0.34, 8, 18]} />
+            <SoftMaterial color="#f3eadf" roughness={0.8} />
+          </mesh>
+          <mesh castShadow position={[0.36, 0, 0.05]} rotation={[0.12, 0, -0.12]}>
+            <capsuleGeometry args={[0.085, 0.3, 10, 22]} />
             <SoftMaterial color={refinedHairColor} roughness={0.93} />
           </mesh>
         </>
@@ -376,16 +465,17 @@ function HairSculpt({
       {hairStyle === "curly" && (
         <>
           {[
-            [-0.36, 0.12, 0.08, 0.12],
-            [-0.28, 0.28, 0.2, 0.13],
-            [-0.12, 0.34, 0.31, 0.14],
-            [0.08, 0.35, 0.31, 0.14],
-            [0.27, 0.27, 0.21, 0.13],
-            [0.36, 0.1, 0.08, 0.12],
-            [-0.2, 0.13, 0.34, 0.115],
-            [0.2, 0.12, 0.34, 0.115]
+            [-0.37, 0.12, 0.09, 0.115],
+            [-0.3, 0.27, 0.2, 0.125],
+            [-0.13, 0.35, 0.32, 0.135],
+            [0.08, 0.36, 0.32, 0.135],
+            [0.27, 0.27, 0.22, 0.125],
+            [0.37, 0.11, 0.09, 0.115],
+            [-0.23, 0.12, 0.35, 0.11],
+            [0.21, 0.12, 0.35, 0.11],
+            [0, 0.22, 0.39, 0.105]
           ].map(([x, y, z, size]) => (
-            <mesh key={`${x}-${y}-${z}`} castShadow position={[x, y, z]}>
+            <mesh key={`${x}-${y}-${z}`} castShadow position={[x, y, z]} scale={[1, 0.94, 0.96]}>
               <sphereGeometry args={[size, 22, 18]} />
               <SoftMaterial color={refinedHairColor} roughness={0.95} />
             </mesh>
@@ -395,16 +485,20 @@ function HairSculpt({
 
       {hairStyle === "bob" && (
         <>
-          <mesh castShadow position={[-0.38, -0.05, 0.01]} rotation={[0.03, 0, -0.05]} scale={[0.86, 1.12, 0.72]}>
+          <mesh castShadow position={[-0.39, -0.06, 0.02]} rotation={[0.03, 0, -0.05]} scale={[0.82, 1.15, 0.72]}>
             <capsuleGeometry args={[0.12, 0.42, 12, 24]} />
             <SoftMaterial color={refinedHairColor} roughness={0.92} />
           </mesh>
-          <mesh castShadow position={[0.38, -0.05, 0.01]} rotation={[0.03, 0, 0.05]} scale={[0.86, 1.12, 0.72]}>
+          <mesh castShadow position={[0.39, -0.06, 0.02]} rotation={[0.03, 0, 0.05]} scale={[0.82, 1.15, 0.72]}>
             <capsuleGeometry args={[0.12, 0.42, 12, 24]} />
             <SoftMaterial color={refinedHairColor} roughness={0.92} />
           </mesh>
-          <mesh castShadow position={[0, 0.17, 0.34]} scale={[1.8, 0.5, 0.42]}>
+          <mesh castShadow position={[0, 0.18, 0.35]} scale={[1.85, 0.48, 0.42]}>
             <sphereGeometry args={[0.14, 24, 16]} />
+            <SoftMaterial color={refinedHairColor} roughness={0.92} />
+          </mesh>
+          <mesh castShadow position={[0, -0.27, 0.13]} scale={[1.6, 0.18, 0.35]}>
+            <sphereGeometry args={[0.14, 24, 12]} />
             <SoftMaterial color={refinedHairColor} roughness={0.92} />
           </mesh>
         </>
@@ -412,11 +506,15 @@ function HairSculpt({
 
       {hairStyle === "high-puff" && (
         <>
-          <mesh castShadow position={[0, 0.55, -0.02]} scale={[1.05, 1.08, 0.95]}>
-            <sphereGeometry args={[0.27, 32, 24]} />
+          <mesh castShadow position={[0, 0.52, -0.02]} scale={[1.02, 1.02, 0.95]}>
+            <sphereGeometry args={[0.25, 32, 24]} />
             <SoftMaterial color={refinedHairColor} roughness={0.95} />
           </mesh>
-          <mesh castShadow position={[0, 0.29, 0.29]} scale={[1.35, 0.52, 0.45]}>
+          <mesh castShadow position={[0, 0.32, 0.05]} rotation={[0, 0, Math.PI / 2]}>
+            <capsuleGeometry args={[0.055, 0.18, 10, 20]} />
+            <SoftMaterial color={refinedHairColor} roughness={0.95} />
+          </mesh>
+          <mesh castShadow position={[0, 0.29, 0.3]} scale={[1.35, 0.5, 0.45]}>
             <sphereGeometry args={[0.13, 24, 16]} />
             <SoftMaterial color={refinedHairColor} roughness={0.95} />
           </mesh>
@@ -446,25 +544,51 @@ function FaceFeatures({
   const browRotation = config.eyebrowStyle === "lifted" ? 0.2 : config.eyebrowStyle === "straight" ? 0.02 : -0.12;
   const browThickness = config.eyebrowStyle === "bold" ? 0.018 : 0.012;
   const refinedHairColor = hairPalettes[hairColor.toLowerCase()] ?? hairColor;
-  const mouthColor = "#6d3d34";
+  const mouthColor = "#6e4239";
+  const scleraScale: [number, number, number] = [eyeSize[0] * 1.55, eyeSize[1] * 1.45, 0.016];
+  const irisScale: [number, number, number] = [eyeSize[0] * 0.68, eyeSize[1] * 0.72, 0.01];
 
   return (
     <group>
-      <mesh position={[-eyeX, eyeY, 0.376]} scale={eyeSize}>
+      <mesh position={[-eyeX, eyeY, 0.372]} scale={scleraScale}>
         <sphereGeometry args={[1, 24, 18]} />
-        <SoftMaterial color={eyeColor} roughness={0.42} />
+        <SoftMaterial color="#fff8ee" roughness={0.58} />
       </mesh>
-      <mesh position={[eyeX, eyeY, 0.376]} scale={eyeSize}>
+      <mesh position={[eyeX, eyeY, 0.372]} scale={scleraScale}>
         <sphereGeometry args={[1, 24, 18]} />
-        <SoftMaterial color={eyeColor} roughness={0.42} />
+        <SoftMaterial color="#fff8ee" roughness={0.58} />
       </mesh>
-      <mesh position={[-eyeX - 0.014, eyeY + 0.012, 0.407]} scale={[0.012, 0.006, 0.004]}>
-        <sphereGeometry args={[1, 12, 8]} />
-        <SoftMaterial color="#fff7ed" roughness={0.34} />
+      <mesh position={[-eyeX, eyeY - 0.001, 0.391]} scale={irisScale}>
+        <sphereGeometry args={[1, 20, 14]} />
+        <SoftMaterial color={eyeColor} roughness={0.38} />
       </mesh>
-      <mesh position={[eyeX - 0.014, eyeY + 0.012, 0.407]} scale={[0.012, 0.006, 0.004]}>
+      <mesh position={[eyeX, eyeY - 0.001, 0.391]} scale={irisScale}>
+        <sphereGeometry args={[1, 20, 14]} />
+        <SoftMaterial color={eyeColor} roughness={0.38} />
+      </mesh>
+      <mesh position={[-eyeX, eyeY - 0.002, 0.402]} scale={[eyeSize[0] * 0.28, eyeSize[1] * 0.32, 0.006]}>
+        <sphereGeometry args={[1, 14, 10]} />
+        <SoftMaterial color="#1f1916" roughness={0.44} />
+      </mesh>
+      <mesh position={[eyeX, eyeY - 0.002, 0.402]} scale={[eyeSize[0] * 0.28, eyeSize[1] * 0.32, 0.006]}>
+        <sphereGeometry args={[1, 14, 10]} />
+        <SoftMaterial color="#1f1916" roughness={0.44} />
+      </mesh>
+      <mesh position={[-eyeX - 0.014, eyeY + 0.013, 0.412]} scale={[0.01, 0.005, 0.004]}>
         <sphereGeometry args={[1, 12, 8]} />
-        <SoftMaterial color="#fff7ed" roughness={0.34} />
+        <SoftMaterial color="#ffffff" roughness={0.28} />
+      </mesh>
+      <mesh position={[eyeX - 0.014, eyeY + 0.013, 0.412]} scale={[0.01, 0.005, 0.004]}>
+        <sphereGeometry args={[1, 12, 8]} />
+        <SoftMaterial color="#ffffff" roughness={0.28} />
+      </mesh>
+      <mesh position={[-eyeX, eyeY + 0.034, 0.399]} rotation={[0, 0, Math.PI / 2]}>
+        <capsuleGeometry args={[0.005, 0.09, 6, 12]} />
+        <SoftMaterial color={skinColor} roughness={0.86} />
+      </mesh>
+      <mesh position={[eyeX, eyeY + 0.034, 0.399]} rotation={[0, 0, Math.PI / 2]}>
+        <capsuleGeometry args={[0.005, 0.09, 6, 12]} />
+        <SoftMaterial color={skinColor} roughness={0.86} />
       </mesh>
 
       <mesh position={[-0.15, 0.155, 0.398]} rotation={[0, 0, Math.PI / 2 + browRotation]}>
@@ -476,12 +600,12 @@ function FaceFeatures({
         <SoftMaterial color={refinedHairColor} roughness={0.9} />
       </mesh>
 
-      <mesh position={[0, -0.03, 0.402]} scale={[0.035, 0.055, 0.022]}>
+      <mesh position={[0, -0.025, 0.403]} scale={[0.032, 0.054, 0.022]}>
         <sphereGeometry args={[1, 18, 12]} />
         <SoftMaterial color={skinColor} roughness={0.86} />
       </mesh>
-      <mesh position={[0, -0.172, 0.407]} rotation={[0, 0, Math.PI]}>
-        <torusGeometry args={[0.077, 0.006, 8, 28, Math.PI]} />
+      <mesh position={[0, -0.172, 0.41]} rotation={[0, 0, Math.PI]} scale={[1.12, 0.72, 1]}>
+        <torusGeometry args={[0.07, 0.0055, 8, 32, Math.PI]} />
         <SoftMaterial color={mouthColor} roughness={0.72} />
       </mesh>
 
@@ -523,37 +647,37 @@ function Accessories({
   return (
     <>
       {hasAccessory("round-glasses") && (
-        <group position={[0, 0.032, 0.414]}>
-          <mesh position={[-eyeX, 0, 0]}>
-            <torusGeometry args={[0.075, 0.006, 10, 36]} />
-            <SoftMaterial color="#243034" roughness={0.42} metalness={0.08} />
+        <group position={[0, 0.033, 0.424]}>
+          <mesh position={[-eyeX, 0, 0]} scale={[1.08, 0.82, 1]}>
+            <torusGeometry args={[0.064, 0.0048, 10, 40]} />
+            <SoftMaterial color="#263437" roughness={0.5} metalness={0.08} />
           </mesh>
-          <mesh position={[eyeX, 0, 0]}>
-            <torusGeometry args={[0.075, 0.006, 10, 36]} />
-            <SoftMaterial color="#243034" roughness={0.42} metalness={0.08} />
+          <mesh position={[eyeX, 0, 0]} scale={[1.08, 0.82, 1]}>
+            <torusGeometry args={[0.064, 0.0048, 10, 40]} />
+            <SoftMaterial color="#263437" roughness={0.5} metalness={0.08} />
           </mesh>
           <mesh position={[0, 0.004, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <capsuleGeometry args={[0.005, Math.max(0.06, eyeX * 0.74), 6, 12]} />
-            <SoftMaterial color="#243034" roughness={0.42} metalness={0.08} />
+            <capsuleGeometry args={[0.004, Math.max(0.052, eyeX * 0.66), 6, 12]} />
+            <SoftMaterial color="#263437" roughness={0.5} metalness={0.08} />
           </mesh>
         </group>
       )}
 
       {hasAccessory("visor") && (
-        <mesh position={[0, 0.065, 0.43]} scale={[0.34, 0.06, 0.024]}>
+        <mesh position={[0, 0.065, 0.432]} scale={[0.31, 0.046, 0.019]}>
           <sphereGeometry args={[1, 32, 12]} />
-          <SoftMaterial color="#78d2d2" roughness={0.26} metalness={0.08} transparent opacity={0.72} />
+          <SoftMaterial color="#8ad9d6" roughness={0.24} metalness={0.08} transparent opacity={0.68} />
         </mesh>
       )}
 
       {hasAccessory("earrings") && (
         <>
-          <mesh position={[-0.432, -0.075, 0.055]}>
-            <torusGeometry args={[0.038, 0.005, 8, 22]} />
+          <mesh position={[-0.424, -0.078, 0.07]}>
+            <torusGeometry args={[0.028, 0.0045, 8, 24]} />
             <SoftMaterial color="#d8bc67" metalness={0.25} roughness={0.34} />
           </mesh>
-          <mesh position={[0.432, -0.075, 0.055]}>
-            <torusGeometry args={[0.038, 0.005, 8, 22]} />
+          <mesh position={[0.424, -0.078, 0.07]}>
+            <torusGeometry args={[0.028, 0.0045, 8, 24]} />
             <SoftMaterial color="#d8bc67" metalness={0.25} roughness={0.34} />
           </mesh>
         </>
@@ -562,16 +686,16 @@ function Accessories({
       {hasAccessory("headphones") && (
         <group position={[0, 0.07, 0]}>
           <mesh>
-            <torusGeometry args={[0.49, 0.016, 12, 48, Math.PI]} />
-            <SoftMaterial color="#2b3032" roughness={0.64} />
+            <torusGeometry args={[0.475, 0.013, 12, 54, Math.PI]} />
+            <SoftMaterial color="#2a3030" roughness={0.68} />
           </mesh>
-          <mesh position={[-0.43, -0.005, 0.055]} scale={[0.72, 1.18, 0.86]}>
-            <capsuleGeometry args={[0.06, 0.12, 10, 18]} />
-            <SoftMaterial color="#2b3032" roughness={0.64} />
+          <mesh position={[-0.416, -0.006, 0.065]} scale={[0.7, 1.08, 0.8]}>
+            <capsuleGeometry args={[0.055, 0.11, 10, 18]} />
+            <SoftMaterial color="#2a3030" roughness={0.68} />
           </mesh>
-          <mesh position={[0.43, -0.005, 0.055]} scale={[0.72, 1.18, 0.86]}>
-            <capsuleGeometry args={[0.06, 0.12, 10, 18]} />
-            <SoftMaterial color="#2b3032" roughness={0.64} />
+          <mesh position={[0.416, -0.006, 0.065]} scale={[0.7, 1.08, 0.8]}>
+            <capsuleGeometry args={[0.055, 0.11, 10, 18]} />
+            <SoftMaterial color="#2a3030" roughness={0.68} />
           </mesh>
         </group>
       )}
@@ -608,14 +732,14 @@ function AnimatedAvatar({
   const activeFaceScale = faceScale[config.faceShape] ?? faceScale.oval;
   const activeHairScale = hairScale[config.hairStyle] ?? hairScale["short-textured"];
 
-  const eyeX = config.eyeShape === "round" ? 0.155 : config.eyeShape === "bright" ? 0.168 : 0.148;
-  const eyeY = config.eyeShape === "soft" ? 0.037 : 0.05;
+  const eyeX = config.eyeShape === "round" ? 0.158 : config.eyeShape === "bright" ? 0.17 : 0.15;
+  const eyeY = config.eyeShape === "soft" ? 0.04 : 0.054;
   const eyeSize: [number, number, number] =
     config.eyeShape === "round"
-      ? [0.04, 0.045, 0.02]
+      ? [0.039, 0.043, 0.02]
       : config.eyeShape === "bright"
-        ? [0.048, 0.034, 0.02]
-        : [0.046, 0.027, 0.019];
+        ? [0.046, 0.033, 0.02]
+        : [0.044, 0.027, 0.019];
 
   const neckShape = useMemo(() => {
     if (config.outfit === "space-suit") return { radius: 0.12, length: 0.1 };
@@ -773,7 +897,7 @@ function AnimatedAvatar({
     <group ref={group} position={[0, 0, 0]}>
       <RoundedTorso outfit={config.outfit} outfitColor={outfitColor} trimColor={trimColor} />
 
-      <mesh castShadow position={[0, 1.18, 0]} scale={[1, 0.9, 1]}>
+      <mesh castShadow position={[0, 1.18, 0]} scale={[1, 0.88, 1]}>
         <capsuleGeometry args={[neckShape.radius, neckShape.length, 12, 22]} />
         <SoftMaterial color={skinColor} roughness={0.84} />
       </mesh>
@@ -781,9 +905,9 @@ function AnimatedAvatar({
       <Arm side={-1} outfitColor={outfitColor} skinColor={skinColor} armRef={leftArm} />
       <Arm side={1} outfitColor={outfitColor} skinColor={skinColor} armRef={rightArm} />
 
-      <group ref={head} name="head" position={[0, 1.56, 0]}>
+      <group ref={head} name="head" position={[0, 1.58, 0]}>
         <mesh castShadow receiveShadow scale={activeFaceScale}>
-          <sphereGeometry args={[0.405, 56, 42]} />
+          <sphereGeometry args={[0.425, 64, 46]} />
           <SoftMaterial color={skinColor} roughness={0.82} />
         </mesh>
 
@@ -829,18 +953,19 @@ export function AvatarRenderer({
     <div className={className} style={{ width: "100%", height: "100%", minHeight: 360, ...style }}>
       <Canvas
         shadows
-        camera={{ position: [0, 1.48, 3.25], fov: 34 }}
+        camera={{ position: [0, 1.52, 3.05], fov: 32 }}
         gl={{ alpha: transparent, preserveDrawingBuffer: Boolean(captureRef) }}
         onCreated={({ gl }) => {
           canvasRef.current = gl.domElement;
         }}
       >
-        {!transparent && <color attach="background" args={["#f8f5ef"]} />}
-        <ambientLight intensity={0.88} />
-        <directionalLight castShadow position={[2.8, 4.3, 3.2]} intensity={1.25} shadow-mapSize={[1536, 1536]} />
-        <directionalLight position={[-2.6, 2.2, 2]} intensity={0.42} color="#f4dfcd" />
-        <directionalLight position={[0, 2.4, -3]} intensity={0.58} color="#dcecff" />
-        <Environment preset="studio" environmentIntensity={0.24} />
+        {!transparent && <color attach="background" args={["#f7f1e8"]} />}
+        <ambientLight intensity={0.72} />
+        <directionalLight castShadow position={[2.6, 4.1, 3.1]} intensity={1.08} color="#fff7ed" shadow-mapSize={[1536, 1536]} />
+        <directionalLight position={[-2.7, 2.1, 2.2]} intensity={0.48} color="#f0dcc9" />
+        <directionalLight position={[0.35, 2.55, -3.1]} intensity={0.64} color="#dbe8ff" />
+        <pointLight position={[-1.8, 1.45, 1.8]} intensity={0.16} color="#fff2d7" />
+        <Environment preset="studio" environmentIntensity={0.18} />
         <AnimatedAvatar
           animationOverride={animationOverride}
           config={config}
@@ -848,13 +973,13 @@ export function AvatarRenderer({
           onOneShotComplete={onOneShotComplete}
         />
         {!transparent && (
-          <mesh receiveShadow rotation-x={-Math.PI / 2} position={[0, 0.1, 0]}>
-            <circleGeometry args={[1.38, 64]} />
-            <SoftMaterial color="#e8e1d6" roughness={0.92} />
+          <mesh receiveShadow rotation-x={-Math.PI / 2} position={[0, 0.098, 0]}>
+            <circleGeometry args={[1.42, 72]} />
+            <SoftMaterial color="#e7ded1" roughness={0.94} />
           </mesh>
         )}
-        <ContactShadows position={[0, 0.105, 0]} opacity={transparent ? 0.16 : 0.24} scale={3.5} blur={2.8} far={2.2} />
-        {controls && <OrbitControls enablePan={false} minDistance={2.25} maxDistance={4.6} target={[0, 1.2, 0]} />}
+        <ContactShadows position={[0, 0.105, 0]} opacity={transparent ? 0.14 : 0.21} scale={3.7} blur={3.2} far={2.3} />
+        {controls && <OrbitControls enablePan={false} minDistance={2.2} maxDistance={4.4} target={[0, 1.24, 0]} />}
       </Canvas>
     </div>
   );

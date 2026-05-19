@@ -12,9 +12,11 @@ This project is intentionally an MVP avatar platform, not a finished commercial 
 ## Rendering
 
 - The current avatar is procedural React Three Fiber geometry.
-- It is suitable for previews, embeds, screenshots, and MVP customization.
+- The premium visual pass improves proportions, lighting, materials, hair, clothing, and Studio presentation, but it is still procedural art.
+- It is suitable for aesthetic MVP previews, embeds, screenshots, and customization demos.
 - It is not a rigged production character asset pipeline.
 - Real hair, clothing, accessory meshes, and animation clips require license-cleared assets.
+- Some trait combinations may still need art-direction QA before public brand launch.
 
 ## Persistence
 
