@@ -114,6 +114,7 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [selfieAnalysis, setSelfieAnalysis] = useState<SelfieAnalysisResult | null>(null);
   const [apiStatus, setApiStatus] = useState("API not used yet");
+  const [apiPending, setApiPending] = useState(false);
   const [savedAvatarId, setSavedAvatarId] = useState("");
   const [publicEmbedId, setPublicEmbedId] = useState("");
   const [loadAvatarId, setLoadAvatarId] = useState("");
@@ -243,6 +244,11 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
   };
 
   const saveAvatarToApi = async () => {
+    if (apiPending) {
+      return;
+    }
+
+    setApiPending(true);
     setApiStatus("Saving to API...");
 
     try {
@@ -296,16 +302,23 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
       }
     } catch {
       setApiStatus("API unavailable. Local save still works.");
+    } finally {
+      setApiPending(false);
     }
   };
 
   const loadAvatarFromApi = async () => {
+    if (apiPending) {
+      return;
+    }
+
     const id = loadAvatarId.trim();
     if (!id) {
       setApiStatus("Enter an avatar ID to load.");
       return;
     }
 
+    setApiPending(true);
     setApiStatus("Loading from API...");
 
     try {
@@ -329,6 +342,8 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
       setApiStatus("Loaded API avatar");
     } catch {
       setApiStatus("API unavailable. Local load still works.");
+    } finally {
+      setApiPending(false);
     }
   };
 
@@ -604,8 +619,8 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
         <section>
           <p className="eyebrow">API Save / Load</p>
           <div className="api-card">
-            <button className="primary" onClick={saveAvatarToApi} type="button">
-              {isEmbed ? "Save and Continue" : savedAvatarId ? "Update API Avatar" : "Save Avatar to API"}
+            <button className="primary" disabled={apiPending} onClick={saveAvatarToApi} type="button">
+              {apiPending ? "Working..." : isEmbed ? "Save and Continue" : savedAvatarId ? "Update API Avatar" : "Save Avatar to API"}
             </button>
             {!isEmbed && (
               <>
@@ -613,7 +628,9 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
                   <span>Load by avatar ID</span>
                   <input onChange={(event) => setLoadAvatarId(event.target.value)} placeholder="avatar id" value={loadAvatarId} />
                 </label>
-                <button onClick={loadAvatarFromApi} type="button">Load API Avatar</button>
+                <button disabled={apiPending} onClick={loadAvatarFromApi} type="button">
+                  {apiPending ? "Loading..." : "Load API Avatar"}
+                </button>
               </>
             )}
             <p className="api-status">{apiStatus}</p>
@@ -739,7 +756,7 @@ function SelfieStartPanel({
       <p className="privacy-note">Your selfie is processed in the browser for this MVP and is not uploaded.</p>
 
       <label className="upload-control">
-        <input accept="image/*" onChange={onFileChange} type="file" />
+        <input accept="image/*" disabled={status === "loading"} onChange={onFileChange} type="file" />
         <span>{status === "loading" ? "Analyzing..." : "Upload photo"}</span>
       </label>
 

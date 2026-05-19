@@ -412,7 +412,18 @@ function openModal(options: AvatarStudioModalOptions): AvatarModalHandle {
   closeButton.style.font = "600 13px Inter, system-ui, sans-serif";
   closeButton.style.cursor = "pointer";
 
+  const loading = document.createElement("div");
+  loading.textContent = "Loading avatar creator...";
+  loading.style.position = "absolute";
+  loading.style.inset = "0";
+  loading.style.display = "grid";
+  loading.style.placeItems = "center";
+  loading.style.color = "#365451";
+  loading.style.font = "600 15px Inter, system-ui, sans-serif";
+  loading.style.background = "#f8f5ef";
+
   overlay.appendChild(frame);
+  frame.appendChild(loading);
   frame.appendChild(closeButton);
   document.body.appendChild(overlay);
 
@@ -440,6 +451,7 @@ function openModal(options: AvatarStudioModalOptions): AvatarModalHandle {
     onAvatarCreated: options.onAvatarCreated,
     onError: options.onError
   });
+  handle.iframe.addEventListener("load", () => loading.remove(), { once: true });
 
   return {
     iframe: handle.iframe,

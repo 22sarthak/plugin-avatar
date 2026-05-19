@@ -81,7 +81,7 @@ window.addEventListener("message", (event) => {
 });
 ```
 
-For MVP local development, localhost origins are allowed. Production should restrict both the Studio `postMessage` target origin and host-page message listeners to the client’s configured allowed origins.
+For MVP local development, localhost origins are allowed. Production should restrict both the Studio `postMessage` target origin and host-page message listeners to the client's configured allowed origins.
 
 ## Production TODOs
 

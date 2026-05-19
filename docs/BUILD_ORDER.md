@@ -67,7 +67,7 @@ Acceptance:
 
 ## Stage 5: API Save/Load
 
-- Implement `services/api` with Node/Express, SQLite, and shared validation from `avatar-core`.
+- Implement `services/api` with Node/Express, PostgreSQL, Prisma, and shared validation from `avatar-core`.
 - Endpoints should save/load avatar config JSON and optional preview metadata.
 - Do not accept raw selfie upload in MVP.
 

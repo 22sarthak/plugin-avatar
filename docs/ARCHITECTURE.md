@@ -25,9 +25,9 @@ docs/
 external/
 ```
 
-Implementation should use TypeScript, pnpm workspaces, and Turborepo once app work starts. The first MVP should use Vite React for `apps/studio` and `apps/demo-site`, React Three Fiber + Drei + Three.js for rendering, MediaPipe Tasks Vision for client-side face landmarks, Zustand or simple React state for builder state, Node/Express for the API, SQLite for local dev storage, and local filesystem storage only for generated dev previews or license-cleared assets.
+Implementation uses TypeScript and pnpm workspaces. The MVP uses Vite React for `apps/studio` and `apps/demo-site`, React Three Fiber + Drei + Three.js for rendering, MediaPipe Tasks Vision for client-side face landmarks, simple React state for builder state, Node/Express for the API, and PostgreSQL + Prisma for local and production-shaped persistence. Local filesystem storage is only for dev assets or future license-cleared previews.
 
-Node/Express is preferred over FastAPI for v1 because the frontend, renderer, SDK, and backend can share TypeScript schemas from `packages/avatar-core`. SQLite is preferred first because the avatar save model is small JSON config data and can later move to Postgres without changing the client contract.
+Node/Express is preferred over FastAPI for v1 because the frontend, renderer, SDK, and backend can share TypeScript schemas from `packages/avatar-core`. SQLite is not active in this repo; PostgreSQL is the single persistence target.
 
 ## Package Responsibilities
 
@@ -73,7 +73,7 @@ Node/Express is preferred over FastAPI for v1 because the frontend, renderer, SD
 
 - Saves and loads avatar JSON config.
 - Stores no raw selfie images.
-- Uses SQLite locally, with a clean path to Postgres.
+- Uses PostgreSQL locally through Docker Compose, with Prisma migrations and seed data.
 - May store generated preview metadata or paths only after the renderer/export stage exists.
 
 ## Data Flow

@@ -206,7 +206,7 @@ What we can reuse:
 What we should avoid:
 
 - Do not copy code or assets because no license is visible locally.
-- Do not adopt PocketBase as a required dependency; our plan uses a minimal Node/Express API and SQLite.
+- Do not adopt PocketBase as a required dependency; this repo uses a minimal Node/Express API with PostgreSQL and Prisma.
 - Do not use tutorial branding, models, images, or hosted demo assumptions.
 
 Risks:

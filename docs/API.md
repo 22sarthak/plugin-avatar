@@ -43,7 +43,7 @@ Auth required.
     "facialHairStyle": "none",
     "outfit": "studio-hoodie",
     "accessoryIds": ["round-glasses"],
-    "animation": "idle",
+    "animation": "idle_breathing",
     "createdAt": "2026-05-18T00:00:00.000Z",
     "updatedAt": "2026-05-18T00:00:00.000Z"
   }
@@ -94,6 +94,8 @@ Public endpoint. Returns public-safe avatar data only.
 }
 ```
 
+The public embed response intentionally omits private avatar IDs, client records, API key hashes, event history, and internal metadata.
+
 ## GET /v1/assets
 
 Public endpoint returning current trait metadata from `avatar-core`.
@@ -115,6 +117,24 @@ Invalid config:
 {
   "error": "invalid_avatar_config",
   "message": "Avatar config is invalid.",
-  "details": ["skinTone Invalid enum value..."]
+  "details": ["skinTone Invalid option..."]
+}
+```
+
+Unauthorized:
+
+```json
+{
+  "error": "invalid_api_key",
+  "message": "API key is invalid or inactive."
+}
+```
+
+Not found:
+
+```json
+{
+  "error": "avatar_not_found",
+  "message": "Avatar was not found for this client."
 }
 ```

@@ -39,6 +39,10 @@ The API does not store:
 
 It does not expose API keys, client internals, private events, or raw user metadata.
 
+## SDK And Snippets
+
+The public SDK creates creator/viewer iframes and validates `postMessage` payloads. SDK snippets must not include `x-avatar-api-key` or production secrets; private saves are handled inside the Studio/API flow.
+
 ## Production TODOs
 
 - API key rotation

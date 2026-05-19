@@ -16,6 +16,7 @@
   "scripts": {
     "build": "tsc -b tsconfig.json && vite build",
     "typecheck": "tsc -b tsconfig.json",
+    "test": "vitest run",
     "lint": "tsc -b tsconfig.json"
   },
   "dependencies": {
