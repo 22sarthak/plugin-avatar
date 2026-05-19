@@ -11,7 +11,16 @@ export type HairStyle = "short-textured" | "bob" | "curly" | "high-puff" | "side
 export type FacialHairStyle = "none" | "stubble" | "goatee" | "full-beard";
 export type Outfit = "studio-hoodie" | "tailored-jacket" | "tech-tee" | "soft-knit" | "space-suit";
 export type AccessoryId = "round-glasses" | "visor" | "earrings" | "headphones";
-export type AnimationName = "idle" | "wave" | "celebrate";
+export type AnimationName =
+  | "idle_breathing"
+  | "small_bounce"
+  | "tiny_shake"
+  | "wave"
+  | "sleep_float"
+  | "slide_in"
+  | "slide_out"
+  | "lean_left"
+  | "lean_right";
 export type EstimatedSkinToneBucket = "very_light" | "light" | "medium" | "tan" | "brown" | "deep";
 export type EstimatedHairColorBucket = "black" | "dark_brown" | "brown" | "blonde" | "red" | "gray" | "unknown";
 
@@ -125,6 +134,35 @@ const colorSchema = z
   .string()
   .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "must be a hex color");
 
+export const animationAliases: Record<string, AnimationName> = {
+  idle: "idle_breathing",
+  bounce: "small_bounce",
+  celebrate: "small_bounce"
+};
+
+export function normalizeAnimationName(value: unknown): AnimationName {
+  if (typeof value !== "string") {
+    return "idle_breathing";
+  }
+
+  return (animationAliases[value] ?? value) as AnimationName;
+}
+
+const animationSchema = z.preprocess(
+  normalizeAnimationName,
+  z.enum([
+    "idle_breathing",
+    "small_bounce",
+    "tiny_shake",
+    "wave",
+    "sleep_float",
+    "slide_in",
+    "slide_out",
+    "lean_left",
+    "lean_right"
+  ])
+);
+
 export const avatarConfigSchema = z
   .object({
     id: z.string().min(1),
@@ -139,7 +177,7 @@ export const avatarConfigSchema = z
     facialHairStyle: z.enum(["none", "stubble", "goatee", "full-beard"]),
     outfit: z.enum(["studio-hoodie", "tailored-jacket", "tech-tee", "soft-knit", "space-suit"]),
     accessoryIds: z.array(z.enum(["round-glasses", "visor", "earrings", "headphones"])),
-    animation: z.enum(["idle", "wave", "celebrate"]),
+    animation: animationSchema,
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime()
   })
@@ -237,9 +275,15 @@ export const accessoryOptions: TraitOption<AccessoryId>[] = [
 ];
 
 export const animationOptions: TraitOption<AnimationName>[] = [
-  { id: "idle", label: "Idle" },
+  { id: "idle_breathing", label: "Idle Breathing" },
+  { id: "small_bounce", label: "Small Bounce" },
+  { id: "tiny_shake", label: "Tiny Shake" },
   { id: "wave", label: "Wave" },
-  { id: "celebrate", label: "Celebrate" }
+  { id: "sleep_float", label: "Sleep Float" },
+  { id: "slide_in", label: "Slide In" },
+  { id: "slide_out", label: "Slide Out" },
+  { id: "lean_left", label: "Lean Left" },
+  { id: "lean_right", label: "Lean Right" }
 ];
 
 export const avatarTraitCategories: TraitCategory[] = [
@@ -265,7 +309,7 @@ export const defaultAvatarConfig: AvatarConfig = {
   facialHairStyle: "none",
   outfit: "studio-hoodie",
   accessoryIds: ["round-glasses"],
-  animation: "idle",
+  animation: "idle_breathing",
   createdAt: timestamp,
   updatedAt: timestamp
 };
@@ -313,7 +357,7 @@ export const avatarPresets: AvatarPreset[] = [
       facialHairStyle: "stubble",
       outfit: "space-suit",
       accessoryIds: ["visor", "headphones"],
-      animation: "celebrate"
+      animation: "small_bounce"
     }
   }
 ];
@@ -334,6 +378,7 @@ export function normalizeAvatarConfig(value: unknown): AvatarConfig {
     ...config,
     id: typeof config.id === "string" && config.id.trim() ? config.id : defaultAvatarConfig.id,
     version: AVATAR_CONFIG_VERSION,
+    animation: normalizeAnimationName(config.animation),
     accessoryIds: Array.isArray(config.accessoryIds)
       ? config.accessoryIds.filter((item): item is string => typeof item === "string")
       : [],

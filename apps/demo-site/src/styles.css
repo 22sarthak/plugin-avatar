@@ -226,6 +226,29 @@ h2 {
   line-height: 1.5;
 }
 
+.animation-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.animation-mode-row button {
+  min-height: 38px;
+  border: 1px solid rgba(89, 76, 62, 0.16);
+  border-radius: 999px;
+  padding: 0 12px;
+  color: #312a24;
+  background: #f6f1e8;
+  font: inherit;
+  font-weight: 800;
+}
+
+.animation-mode-row button.active {
+  color: #fffdfa;
+  border-color: #2f5f5b;
+  background: #2f5f5b;
+}
+
 .viewer-card {
   overflow: hidden;
 }

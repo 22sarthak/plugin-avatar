@@ -20,6 +20,8 @@ const STORAGE_KEY = "avatar-platform:demo-avatar";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
 const STUDIO_BASE_URL = import.meta.env.VITE_STUDIO_BASE_URL ?? "http://localhost:5173";
 const DEMO_BASE_URL = import.meta.env.VITE_DEMO_BASE_URL ?? "http://localhost:5174";
+const viewerAnimationModes = ["idle", "bounce", "wave"] as const;
+type ViewerAnimationMode = (typeof viewerAnimationModes)[number];
 
 interface PublicEmbedResponse {
   publicEmbedId: string;
@@ -57,7 +59,7 @@ function parseBooleanParam(value: string | null, fallback: boolean): boolean {
   return fallback;
 }
 
-function parseViewerAnimation(value: string | null): "idle" | "bounce" | "wave" | undefined {
+function parseViewerAnimation(value: string | null): ViewerAnimationMode | undefined {
   if (value === "idle" || value === "bounce" || value === "wave") {
     return value;
   }
@@ -137,6 +139,7 @@ function DemoApp() {
   const [loadedEmbed, setLoadedEmbed] = useState<PublicEmbedResponse | null>(null);
   const [receivedAvatar, setReceivedAvatar] = useState<AvatarCreatedMessage["payload"] | null>(null);
   const [sdkStatus, setSdkStatus] = useState("SDK inline creator ready.");
+  const [viewerAnimation, setViewerAnimation] = useState<ViewerAnimationMode>("idle");
   const sdkInlineRef = useRef<HTMLDivElement | null>(null);
   const modalHandleRef = useRef<{ destroy: () => void } | null>(null);
   const summary = useMemo(() => `${avatar.hairStyle} / ${avatar.outfit} / ${avatar.animation}`, [avatar]);
@@ -150,7 +153,7 @@ function DemoApp() {
     ? createAvatarViewerUrl({
         baseUrl: DEMO_BASE_URL,
         publicEmbedId: receivedAvatar.publicEmbedId,
-        animation: "idle",
+        animation: viewerAnimation,
         controls: true
       })
     : "";
@@ -165,6 +168,15 @@ function DemoApp() {
   studioBaseUrl: "${STUDIO_BASE_URL}",
   onAvatarCreated: (event) => console.log(event)
 });`;
+  const sdkViewerSnippet = receivedAvatar
+    ? `AvatarStudio.renderAvatar({
+  container: "#avatar-viewer",
+  publicEmbedId: "${receivedAvatar.publicEmbedId}",
+  studioBaseUrl: "${DEMO_BASE_URL}",
+  animation: "${viewerAnimation}",
+  controls: true
+});`
+    : "Create and save an avatar to generate an SDK viewer snippet.";
   const sdkModalSnippet = `AvatarStudio.openModal({
   clientId: "demo",
   externalUserId: "user_123",
@@ -352,6 +364,21 @@ function DemoApp() {
             <p className="eyebrow">Viewer snippet</p>
             <textarea className="snippet-output" readOnly value={viewerSnippet} />
           </div>
+          <div>
+            <p className="eyebrow">Animation query</p>
+            <div className="animation-mode-row">
+              {viewerAnimationModes.map((animation) => (
+                <button
+                  className={viewerAnimation === animation ? "active" : ""}
+                  key={animation}
+                  onClick={() => setViewerAnimation(animation)}
+                  type="button"
+                >
+                  {animation}
+                </button>
+              ))}
+            </div>
+          </div>
         </aside>
       </section>
 
@@ -381,12 +408,16 @@ function DemoApp() {
             <p className="eyebrow">Modal snippet</p>
             <textarea className="snippet-output" readOnly value={sdkModalSnippet} />
           </div>
+          <div>
+            <p className="eyebrow">SDK viewer snippet</p>
+            <textarea className="snippet-output" readOnly value={sdkViewerSnippet} />
+          </div>
         </aside>
       </section>
 
       <section className="demo-grid">
         <div className="viewer-card">
-          <AvatarRenderer config={avatar} />
+          <AvatarRenderer animationOverride={viewerAnimation} config={avatar} />
         </div>
 
         <aside className="panel">

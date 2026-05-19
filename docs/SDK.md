@@ -148,7 +148,7 @@ onAvatarCreated: (event) => {
 - `publicEmbedId`: required for viewer mode.
 - `theme`: `"light"` or `"dark"`.
 - `studioBaseUrl`: base URL for the iframe route.
-- `animation`: `"idle"`, `"bounce"`, or `"wave"` for viewer mode.
+- `animation`: `"idle"`, `"bounce"`, or `"wave"` for viewer mode. These map to the renderer's saved animations `idle_breathing`, `small_bounce`, and `wave`.
 - `controls`: viewer orbit controls.
 - `onAvatarCreated`, `onAvatarUpdated`, `onError`: callbacks.
 

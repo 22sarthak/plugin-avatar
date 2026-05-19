@@ -1,16 +1,28 @@
-import type { AvatarConfig, FaceShape, HairStyle, Outfit } from "@avatar-platform/avatar-core";
+import type { AnimationName, AvatarConfig, FaceShape, HairStyle, Outfit } from "@avatar-platform/avatar-core";
 import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, Ref } from "react";
 import type { Group } from "three";
+
+export type AvatarOneShotAnimation =
+  | "wave"
+  | "tiny_shake"
+  | "slide_in"
+  | "slide_out"
+  | "lean_left"
+  | "lean_right";
+
+export type AvatarAnimationOverride = AnimationName | "idle" | "bounce" | "celebrate";
 
 export interface AvatarRendererProps {
   config: AvatarConfig;
   className?: string;
   controls?: boolean;
   transparent?: boolean;
-  animationOverride?: "idle" | "wave" | "celebrate" | "bounce";
+  animationOverride?: AvatarAnimationOverride;
+  oneShotAnimation?: AvatarOneShotAnimation | null;
+  onOneShotComplete?: () => void;
   style?: CSSProperties;
 }
 
@@ -77,6 +89,51 @@ const hairScale: Record<HairStyle | string, [number, number, number]> = {
   "side-sweep": [1.12, 0.66, 0.98],
   buzz: [0.94, 0.3, 0.94]
 };
+
+const animationAliases: Record<string, AnimationName> = {
+  idle: "idle_breathing",
+  bounce: "small_bounce",
+  celebrate: "small_bounce"
+};
+
+const oneShotDurations: Record<AvatarOneShotAnimation, number> = {
+  wave: 1.35,
+  tiny_shake: 0.55,
+  slide_in: 0.82,
+  slide_out: 0.82,
+  lean_left: 0.7,
+  lean_right: 0.7
+};
+
+const resolveAnimationName = (value: string | undefined): AnimationName => {
+  if (!value) {
+    return "idle_breathing";
+  }
+
+  return (animationAliases[value] ?? value) as AnimationName;
+};
+
+const easeOutCubic = (value: number): number => 1 - Math.pow(1 - value, 3);
+const easeInCubic = (value: number): number => value * value * value;
+const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
+
+function usePrefersReducedMotion() {
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return;
+    }
+
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return reducedMotion;
+}
 
 function SoftMaterial({
   color,
@@ -519,15 +576,23 @@ function Accessories({
 
 function AnimatedAvatar({
   animationOverride,
-  config
+  config,
+  oneShotAnimation,
+  onOneShotComplete
 }: {
-  animationOverride?: AvatarRendererProps["animationOverride"];
+  animationOverride?: AvatarAnimationOverride;
   config: AvatarConfig;
+  oneShotAnimation?: AvatarOneShotAnimation | null;
+  onOneShotComplete?: () => void;
 }) {
   const group = useRef<Group>(null);
   const rightArm = useRef<Group>(null);
   const leftArm = useRef<Group>(null);
   const head = useRef<Group>(null);
+  const animationStartedAt = useRef<number | null>(null);
+  const oneShotStartedAt = useRef<number | null>(null);
+  const previousOneShot = useRef<AvatarOneShotAnimation | null | undefined>(null);
+  const reducedMotion = usePrefersReducedMotion();
 
   const skinColor = skinToneColors[config.skinTone] ?? config.skinTone ?? skinToneColors.amber;
   const blushColor = skinBlushColors[config.skinTone] ?? "#ae674f";
@@ -552,31 +617,150 @@ function AnimatedAvatar({
     return { radius: 0.105, length: 0.12 };
   }, [config.outfit]);
 
+  const baseAnimation = resolveAnimationName(animationOverride ?? config.animation);
+
+  useEffect(() => {
+    animationStartedAt.current = null;
+  }, [baseAnimation]);
+
   useFrame(({ clock }) => {
     const time = clock.getElapsedTime();
-    const breathing = Math.sin(time * 1.55) * 0.014;
-    const bounce = Math.abs(Math.sin(time * 2.05)) * 0.032;
+    if (animationStartedAt.current === null) {
+      animationStartedAt.current = time;
+    }
 
-    const animation = animationOverride ?? config.animation;
+    if (previousOneShot.current !== oneShotAnimation) {
+      previousOneShot.current = oneShotAnimation;
+      oneShotStartedAt.current = oneShotAnimation ? time : null;
+    }
+
+    const elapsed = time - animationStartedAt.current;
+    const motionScale = reducedMotion ? 0.18 : 1;
+    let rootX = 0;
+    let rootY = 0;
+    let rootRotationY = Math.sin(time * 0.42) * 0.018 * motionScale;
+    let rootRotationZ = 0;
+    let headRotationY = Math.sin(time * 0.5) * 0.012 * motionScale;
+    let headRotationZ = Math.sin(time * 0.74) * 0.014 * motionScale;
+    let rightArmRotationZ = -0.22;
+    let rightArmRotationX = 0;
+    let leftArmRotationZ = 0.22;
+
+    if (!reducedMotion) {
+      if (baseAnimation === "idle_breathing") {
+        rootY += Math.sin(time * 1.55) * 0.014;
+      }
+
+      if (baseAnimation === "small_bounce") {
+        rootY += Math.abs(Math.sin(time * 2.05)) * 0.035;
+        rootRotationY += Math.sin(time * 1.4) * 0.035;
+      }
+
+      if (baseAnimation === "tiny_shake") {
+        rootX += Math.sin(time * 10.5) * 0.012;
+        rootRotationZ += Math.sin(time * 12) * 0.022;
+      }
+
+      if (baseAnimation === "wave") {
+        rightArmRotationZ = -1.0 + Math.sin(time * 6) * 0.28;
+        rightArmRotationX = -0.12;
+        headRotationZ += Math.sin(time * 1.8) * 0.018;
+      }
+
+      if (baseAnimation === "sleep_float") {
+        rootY += 0.045 + Math.sin(time * 0.82) * 0.035;
+        rootRotationZ += Math.sin(time * 0.62) * 0.045;
+        headRotationZ += -0.08 + Math.sin(time * 0.8) * 0.018;
+      }
+
+      if (baseAnimation === "slide_in") {
+        const progress = easeOutCubic(clamp01(elapsed / 0.9));
+        rootX += -0.72 * (1 - progress);
+        rootY += Math.sin(progress * Math.PI) * 0.035;
+      }
+
+      if (baseAnimation === "slide_out") {
+        const progress = easeInCubic(clamp01(elapsed / 0.9));
+        rootX += 0.72 * progress;
+        rootY += Math.sin(progress * Math.PI) * 0.025;
+      }
+
+      if (baseAnimation === "lean_left") {
+        rootRotationZ += 0.16 + Math.sin(time * 1.4) * 0.014;
+        headRotationZ -= 0.05;
+      }
+
+      if (baseAnimation === "lean_right") {
+        rootRotationZ -= 0.16 + Math.sin(time * 1.4) * 0.014;
+        headRotationZ += 0.05;
+      }
+    }
+
+    if (oneShotAnimation && oneShotStartedAt.current !== null) {
+      const duration = oneShotDurations[oneShotAnimation] * (reducedMotion ? 0.7 : 1);
+      const progress = clamp01((time - oneShotStartedAt.current) / duration);
+      const pulse = Math.sin(progress * Math.PI);
+      const cycle = Math.sin(progress * Math.PI * 2);
+      const oneShotScale = reducedMotion && oneShotAnimation !== "wave" ? 0.35 : 1;
+
+      if (oneShotAnimation === "wave") {
+        rightArmRotationZ = -1.05 + Math.sin(progress * Math.PI * 8) * 0.32 * oneShotScale;
+        rightArmRotationX = -0.13;
+        headRotationZ += pulse * 0.035 * oneShotScale;
+      }
+
+      if (oneShotAnimation === "tiny_shake") {
+        rootX += cycle * 0.034 * oneShotScale;
+        rootRotationZ += cycle * 0.05 * oneShotScale;
+      }
+
+      if (oneShotAnimation === "slide_in") {
+        rootX += -0.85 * (1 - easeOutCubic(progress)) * oneShotScale;
+        rootY += pulse * 0.045 * oneShotScale;
+      }
+
+      if (oneShotAnimation === "slide_out") {
+        rootX += 0.85 * easeInCubic(progress) * oneShotScale;
+        rootY += pulse * 0.035 * oneShotScale;
+      }
+
+      if (oneShotAnimation === "lean_left") {
+        rootRotationZ += pulse * 0.22 * oneShotScale;
+        headRotationZ -= pulse * 0.08 * oneShotScale;
+      }
+
+      if (oneShotAnimation === "lean_right") {
+        rootRotationZ -= pulse * 0.22 * oneShotScale;
+        headRotationZ += pulse * 0.08 * oneShotScale;
+      }
+
+      if (progress >= 1) {
+        oneShotStartedAt.current = null;
+        previousOneShot.current = oneShotAnimation;
+        onOneShotComplete?.();
+      }
+    }
 
     if (group.current) {
-      group.current.position.y = breathing + (animation === "celebrate" || animation === "bounce" ? bounce : 0);
-      group.current.rotation.y = animation === "celebrate" ? Math.sin(time * 2) * 0.1 : Math.sin(time * 0.42) * 0.028;
+      group.current.position.x = rootX;
+      group.current.position.y = rootY;
+      group.current.rotation.y = rootRotationY;
+      group.current.rotation.z = rootRotationZ;
     }
 
     if (head.current) {
-      head.current.rotation.z = Math.sin(time * 0.74) * 0.02;
-      head.current.rotation.y = Math.sin(time * 0.5) * 0.018;
+      head.current.rotation.z = headRotationZ;
+      head.current.rotation.y = headRotationY;
     }
 
     if (rightArm.current) {
-      rightArm.current.rotation.z =
-        animation === "wave" ? -1.0 + Math.sin(time * 6) * 0.28 : animation === "celebrate" ? -1.25 : -0.22;
-      rightArm.current.rotation.x = animation === "wave" ? -0.12 : 0;
+      rightArm.current.rotation.z = rightArmRotationZ;
+      rightArm.current.rotation.x = rightArmRotationX;
     }
 
     if (leftArm.current) {
-      leftArm.current.rotation.z = animation === "celebrate" ? 1.25 : 0.22;
+      leftArm.current.rotation.z = leftArmRotationZ;
+      leftArm.current.rotation.x = 0;
     }
   });
 
@@ -620,6 +804,8 @@ export function AvatarRenderer({
   config,
   className,
   controls = true,
+  oneShotAnimation,
+  onOneShotComplete,
   transparent = false,
   style
 }: AvatarRendererProps) {
@@ -632,7 +818,12 @@ export function AvatarRenderer({
         <directionalLight position={[-2.6, 2.2, 2]} intensity={0.42} color="#f4dfcd" />
         <directionalLight position={[0, 2.4, -3]} intensity={0.58} color="#dcecff" />
         <Environment preset="studio" environmentIntensity={0.24} />
-        <AnimatedAvatar animationOverride={animationOverride} config={config} />
+        <AnimatedAvatar
+          animationOverride={animationOverride}
+          config={config}
+          oneShotAnimation={oneShotAnimation}
+          onOneShotComplete={onOneShotComplete}
+        />
         {!transparent && (
           <mesh receiveShadow rotation-x={-Math.PI / 2} position={[0, 0.1, 0]}>
             <circleGeometry args={[1.38, 64]} />

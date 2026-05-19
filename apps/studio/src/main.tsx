@@ -22,6 +22,7 @@ import {
   type TraitOption
 } from "@avatar-platform/avatar-core";
 import { AvatarRenderer } from "@avatar-platform/avatar-renderer";
+import type { AvatarOneShotAnimation } from "@avatar-platform/avatar-renderer";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -98,6 +99,7 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
   const [savedAvatarId, setSavedAvatarId] = useState("");
   const [publicEmbedId, setPublicEmbedId] = useState("");
   const [loadAvatarId, setLoadAvatarId] = useState("");
+  const [oneShotAnimation, setOneShotAnimation] = useState<AvatarOneShotAnimation | null>(null);
   const exportedJson = useMemo(() => serializeAvatarConfig(avatar), [avatar]);
   const publicEmbedUrl = publicEmbedId ? `${DEMO_BASE_URL.replace(/\/$/, "")}/embed/avatar/${publicEmbedId}` : "";
   const isEmbed = Boolean(embedOptions);
@@ -328,6 +330,11 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
     }
   };
 
+  const previewOneShot = (animation: AvatarOneShotAnimation) => {
+    setOneShotAnimation(animation);
+    setStatus(`Previewing ${bucketLabel(animation)}`);
+  };
+
   return (
     <main className={isEmbed ? "studio-shell embed-shell" : "studio-shell"}>
       <aside className="panel left-panel">
@@ -432,8 +439,18 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
 
           {activeSection === "animation" && (
             <>
-              <ControlHeader title="Animation" detail="Preview simple idle and gesture loops." />
+              <ControlHeader title="Animation" detail="Set the saved default motion and preview quick gestures." />
               <SegmentedGroup label="Preview animation" options={animationOptions} selected={avatar.animation} onSelect={(option) => updateAvatar("animation", option.id)} />
+              <div className="field-group">
+                <span className="field-label">One-shot previews</span>
+                <div className="segmented">
+                  {(["wave", "tiny_shake", "slide_in", "slide_out", "lean_left", "lean_right"] as AvatarOneShotAnimation[]).map((animation) => (
+                    <button key={animation} onClick={() => previewOneShot(animation)} type="button">
+                      {bucketLabel(animation)}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </>
           )}
         </section>
@@ -448,7 +465,14 @@ function StudioApp({ embedOptions }: { embedOptions: CreatorEmbedOptions | null 
           <span className="status-pill">{status}</span>
         </div>
         <div className="viewer-card">
-          <AvatarRenderer config={avatar} />
+          <AvatarRenderer
+            config={avatar}
+            oneShotAnimation={oneShotAnimation}
+            onOneShotComplete={() => {
+              setOneShotAnimation(null);
+              setStatus("Ready");
+            }}
+          />
         </div>
       </section>
 

@@ -58,7 +58,7 @@ No API key is required for the public viewer, and the response does not expose c
 
 Query parameters:
 
-- `animation`: `idle`, `bounce`, or `wave`.
+- `animation`: `idle`, `bounce`, or `wave`. These are public viewer aliases for `idle_breathing`, `small_bounce`, and `wave`.
 - `controls`: `true` or `false`; defaults to `true`.
 - `transparent`: `true` or `false`; defaults to `false`.
 
